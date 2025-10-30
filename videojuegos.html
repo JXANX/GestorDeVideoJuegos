@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Videojuegos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        h1 {
+            color: #4a5568;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(56, 161, 105, 0.4);
+        }
+
+        .btn-logout {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+        }
+
+        .btn-logout:hover {
+            box-shadow: 0 5px 15px rgba(229, 62, 62, 0.4);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+
+        .tab {
+            padding: 12px 30px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #4a5568;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            background: #e2e8f0;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section {
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .section.beta-section {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
+        }
+
+        .section h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"], 
+        input[type="number"], 
+        select, 
+        textarea {
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            width: 100%;
+        }
+
+        input:focus, 
+        select:focus, 
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            grid-column: 1 / -1;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            min-height: 100px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .game-card {
+            background: #f7fafc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            position: relative;
+        }
+
+        .game-card.beta-card {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        }
+
+        .beta-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .game-card h4 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .game-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .rating {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .price {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .feedback-section {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fff5f5;
+            border: 2px dashed #fed7d7;
+            border-radius: 8px;
+            grid-column: 1 / -1;
+        }
+
+        .feedback-section strong {
+            display: block;
+            margin-bottom: 10px;
+            color: #c53030;
+        }
+
+        .feedback-section ul {
+            margin-left: 20px;
+            color: #4a5568;
+        }
+
+        .feedback-section li {
+            margin-bottom: 5px;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                border-radius: 10px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Gestor de Videojuegos</h1>
+            <div class="nav-buttons">
+                <a href="index.html" class="nav-button">🏠 Inicio</a>
+                <a href="reseñas.html" class="nav-button">⭐ Reseñas</a>
+                <button onclick="cerrarSesion()" class="nav-button btn-logout">🚪 Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('normal')">🎯 Videojuegos</button>
+            <button class="tab" onclick="switchTab('beta')">🧪 Videojuegos Beta</button>
+        </div>
+
+        <!-- TAB: Videojuegos Normales -->
+        <div id="normalTab" class="tab-content active">
+            <!-- Mostrar todos -->
+            <div class="section">
+                <h2>📋 Todos los Videojuegos</h2>
+                <button onclick="mostrarTodosLosJuegos()" class="btn-info">Mostrar Todos</button>
+                <div id="todosJuegos" class="results"></div>
+            </div>
+
+            <!-- Agregar videojuego -->
+            <div class="section">
+                <h2>➕ Agregar Videojuego</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID:</label>
+                        <input type="number" id="nuevoId" placeholder="Ej: 4">
+                    </div>
+                    <div class="form-group">
+                        <label>Título:</label>
+                        <input type="text" id="nuevoTitulo" placeholder="Nombre del juego">
+                    </div>
+                    <div class="form-group">
+                        <label>Género:</label>
+                        <input type="text" id="nuevoGenero" placeholder="Ej: Acción">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Desarrollador:</label>
+                        <input type="text" id="nuevoDesarrollador" placeholder="Nombre del desarrollador">
+                    </div>
+                    <div class="form-group">
+                        <label>Año:</label>
+                        <input type="number" id="nuevoAño" placeholder="Ej: 2024">
+                    </div>
+                    <div class="form-group">
+                        <label>Plataforma:</label>
+                        <input type="text" id="nuevaPlataforma" placeholder="Ej: PC, PS5">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Precio:</label>
+                        <input type="number" id="nuevoPrecio" placeholder="Ej: 60000">
+                    </div>
+                    <div class="form-group">
+                        <label>Estado:</label>
+                        <select id="nuevoEstado">
+                            <option value="Digital">Digital</option>
+                            <option value="Físico">Físico</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rating:</label>
+                        <input type="number" id="nuevoRating" step="0.1" min="0" max="10" placeholder="Ej: 8.5">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Descripción:</label>
+                        <textarea id="nuevaDescripcion" placeholder="Descripción del juego"></textarea>
+                    </div>
+                </div>
+                <button onclick="agregarNuevoJuego()" class="btn-success">Agregar Juego</button>
+            </div>
+
+            <!-- Buscar por ID -->
+            <div class="section">
+                <h2>🔍 Buscar por ID</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID del juego:</label>
+                        <input type="number" id="buscarId" placeholder="Ingresa el ID">
+                    </div>
+                </div>
+                <button onclick="buscarPorId()" class="btn-info">Buscar</button>
+                <div id="resultadoBusqueda" class="results"></div>
+            </div>
+
+            <!-- Buscar por género -->
+            <div class="section">
+                <h2>🎯 Buscar por Género (Local + RAWG)</h2>
+                <p style="color: #718096; margin-bottom: 15px; font-size: 14px;">
+                    Busca juegos por género en tu colección y en la base de datos de RAWG simultáneamente
+                </p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Género:</label>
+                        <input type="text" id="buscarGenero" placeholder="Ej: Metroidvania, RPG, Action, Indie...">
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button onclick="buscarPorGeneroMejorado()" class="btn-info">🔍 Buscar (Local + RAWG)</button>
+                    <button onclick="buscarPorGenero()" class="btn-info" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        📚 Buscar Solo Local
+                    </button>
+                </div>
+                <div id="resultadoGenero" class="results"></div>
+            </div>
+                
+                <!-- Sub-sección: Juegos Populares -->
+                <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 15px;">⭐ Juegos Más Populares</h3>
+                    <p style="color: #718096; margin-bottom: 15px; font-size: 14px;">
+                        Explora los juegos mejor valorados de RAWG
+                    </p>
+                    <button onclick="mostrarJuegosPopularesRAWG()" class="btn-info">
+                        🔥 Mostrar Top 20 Juegos
+                    </button>
+                    <div id="juegosPopularesRAWG" class="results"></div>
+                </div>
+                
+                <!-- Sub-sección: Buscar Juego Específico -->
+                <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3 style="color: #3182ce; margin-bottom: 15px;">🔍 Buscar Juego en RAWG</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre del juego:</label>
+                            <input type="text" id="buscarNombreRAWG" placeholder="Ej: The Witcher 3, Minecraft, GTA V...">
+                        </div>
+                    </div>
+                    <button onclick="buscarJuegoEnRAWG()" class="btn-info">🎮 Buscar en RAWG</button>
+                    <div id="resultadoRAWG" class="results"></div>
+                </div>
+                
+                <!-- Sub-sección: CheapShark Precios -->
+<div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #10b981;">
+    <h3 style="color: #10b981; margin-bottom: 15px;">💰 Buscar Mejores Precios (CheapShark)</h3>
+    <p style="color: #718096; margin-bottom: 15px; font-size: 14px;">
+        Encuentra las mejores ofertas y precios de juegos en múltiples tiendas
+    </p>
+    
+    <!-- Mejores ofertas del momento -->
+    <div style="margin-bottom: 20px;">
+        <button onclick="mostrarMejoresOfertas()" class="btn-success">
+            🔥 Ver Mejores Ofertas del Momento
+        </button>
+        <div id="mejoresOfertas" class="results"></div>
+    </div>
+    
+    <!-- Buscar precio específico -->
+    <div class="form-row">
+        <div class="form-group">
+            <label>Buscar precio de un juego:</label>
+            <input type="text" id="buscarPrecioCheapShark" 
+                   placeholder="Ej: GTA V, Cyberpunk 2077, Elden Ring...">
+        </div>
+    </div>
+    <button onclick="buscarPreciosEnCheapShark()" class="btn-success">
+        💵 Buscar Precios
+    </button>
+    <div id="resultadoCheapShark" class="results"></div>
+    
+    <!-- Detalles de oferta -->
+    <div id="detallesOferta" class="results"></div>
+</div>
+
+            <!-- Actualizar videojuego -->
+            <div class="section">
+                <h2>✏️ Actualizar Videojuego</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID del juego:</label>
+                        <input type="number" id="actualizarId" placeholder="ID a actualizar">
+                    </div>
+                    <div class="form-group">
+                        <label>Nuevo Título:</label>
+                        <input type="text" id="actualizarTitulo" placeholder="Nuevo título">
+                    </div>
+                    <div class="form-group">
+                        <label>Nuevo Género:</label>
+                        <input type="text" id="actualizarGenero" placeholder="Nuevo género">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nuevo Desarrollador:</label>
+                        <input type="text" id="actualizarDesarrollador" placeholder="Nuevo desarrollador">
+                    </div>
+                    <div class="form-group">
+                        <label>Nuevo Precio:</label>
+                        <input type="number" id="actualizarPrecio" placeholder="Nuevo precio">
+                    </div>
+                    <div class="form-group">
+                        <label>Nuevo Rating:</label>
+                        <input type="number" id="actualizarRating" step="0.1" placeholder="Nuevo rating">
+                    </div>
+                </div>
+                <button onclick="actualizarJuego()" class="btn-success">Actualizar</button>
+                <div id="resultadoActualizacion" class="results"></div>
+            </div>
+
+            <!-- Eliminar videojuego -->
+            <div class="section">
+                <h2>🗑️ Eliminar Videojuego</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID del juego:</label>
+                        <input type="number" id="eliminarId" placeholder="ID a eliminar">
+                    </div>
+                </div>
+                <button onclick="eliminarJuego()" class="btn-danger">Eliminar</button>
+            </div>
+        </div>
+
+        <!-- TAB: Videojuegos Beta -->
+        <div id="betaTab" class="tab-content">
+            <!-- Mostrar todos beta -->
+            <div class="section beta-section">
+                <h2>🧪 Todos los Videojuegos Beta</h2>
+                <button onclick="mostrarTodosLosJuegosBeta()" class="btn-warning">Mostrar Todos</button>
+                <div id="todosJuegosBeta" class="results"></div>
+            </div>
+
+            <!-- Agregar beta -->
+            <div class="section beta-section">
+                <h2>➕ Agregar Videojuego Beta</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID:</label>
+                        <input type="number" id="nuevoBetaId" placeholder="Ej: 103">
+                    </div>
+                    <div class="form-group">
+                        <label>Título:</label>
+                        <input type="text" id="nuevoBetaTitulo" placeholder="Nombre del juego">
+                    </div>
+                    <div class="form-group">
+                        <label>Género:</label>
+                        <input type="text" id="nuevoBetaGenero" placeholder="Género">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Desarrollador:</label>
+                        <input type="text" id="nuevoBetaDesarrollador" placeholder="Desarrollador">
+                    </div>
+                    <div class="form-group">
+                        <label>Año:</label>
+                        <input type="number" id="nuevoBetaAño" placeholder="Ej: 2024">
+                    </div>
+                    <div class="form-group">
+                        <label>Plataforma:</label>
+                        <input type="text" id="nuevoBetaPlataforma" placeholder="Plataformas">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Rating:</label>
+                        <input type="number" id="nuevoBetaRating" step="0.1" placeholder="Rating">
+                    </div>
+                    <div class="form-group">
+                        <label>Versión:</label>
+                        <input type="text" id="nuevoBetaVersion" placeholder="Ej: 0.9.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha Acceso:</label>
+                        <input type="text" id="nuevoBetaFecha" placeholder="DD-MM-YYYY">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Descripción:</label>
+                        <textarea id="nuevoBetaDescripcion" placeholder="Descripción del juego beta"></textarea>
+                    </div>
+                </div>
+                <button onclick="agregarNuevoJuegoBeta()" class="btn-warning">Agregar Beta</button>
+            </div>
+
+            <!-- Buscar beta por ID -->
+            <div class="section beta-section">
+                <h2>🔍 Buscar Beta por ID</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID del juego beta:</label>
+                        <input type="number" id="buscarBetaId" placeholder="Ingresa el ID">
+                    </div>
+                </div>
+                <button onclick="buscarBetaPorId()" class="btn-warning">Buscar</button>
+                <div id="resultadoBusquedaBeta" class="results"></div>
+            </div>
+
+            <!-- Agregar feedback -->
+            <div class="section beta-section">
+                <h2>💬 Agregar Feedback</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID del juego beta:</label>
+                        <input type="number" id="feedbackBetaId" placeholder="ID del beta">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Feedback:</label>
+                        <textarea id="feedbackTexto" placeholder="Escribe tu feedback"></textarea>
+                    </div>
+                </div>
+                <button onclick="agregarFeedbackBeta()" class="btn-warning">Agregar Feedback</button>
+                <div id="resultadoFeedback" class="results"></div>
+            </div>
+
+            <!-- Actualizar beta -->
+            <div class="section beta-section">
+                <h2>✏️ Actualizar Videojuego Beta</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID del juego beta:</label>
+                        <input type="number" id="actualizarBetaId" placeholder="ID a actualizar">
+                    </div>
+                    <div class="form-group">
+                        <label>Nuevo Título:</label>
+                        <input type="text" id="actualizarBetaTitulo" placeholder="Nuevo título">
+                    </div>
+                    <div class="form-group">
+                        <label>Nueva Versión:</label>
+                        <input type="text" id="actualizarBetaVersion" placeholder="Nueva versión">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nuevo Rating:</label>
+                        <input type="number" id="actualizarBetaRating" step="0.1" placeholder="Nuevo rating">
+                    </div>
+                </div>
+                <button onclick="actualizarJuegoBeta()" class="btn-warning">Actualizar</button>
+                <div id="resultadoActualizacionBeta" class="results"></div>
+            </div>
+
+            <!-- Eliminar beta -->
+            <div class="section beta-section">
+                <h2>🗑️ Eliminar Videojuego Beta</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ID del juego beta:</label>
+                        <input type="number" id="eliminarBetaId" placeholder="ID a eliminar">
+                    </div>
+                </div>
+                <button onclick="eliminarJuegoBeta()" class="btn-danger">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="dist/Script.js"></script>
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'normal') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('normalTab').classList.add('active');
+            } else {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('betaTab').classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

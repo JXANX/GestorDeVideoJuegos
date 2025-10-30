@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    // File Layout
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // Environment Settings
+    "target": "ES6",
+    "module": "ES2020",         // 👈 usa módulos de navegador
+    "moduleResolution": "node", // 👈 resuelve imports estilo Node (recomendado)
+
+    
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+
+    // Other Outputs
+    "sourceMap": false,
+    "declaration": false,
+    "declarationMap": false,
+
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Recommended Options
+    "strict": true,
+    "skipLibCheck": true
+  }
+}

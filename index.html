@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Videojuegos - Menú Principal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 50px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            text-align: center;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .btn-logout {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-logout:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(229, 62, 62, 0.4);
+        }
+
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        h1 {
+            color: #4a5568;
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 1.2rem;
+            margin-bottom: 50px;
+            font-weight: 300;
+        }
+
+        .stats-section {
+            background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stats-section h2 {
+            color: #2d3748;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .menu-options {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .menu-card {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 40px 30px;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            min-width: 280px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .menu-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .videojuegos-card {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        }
+
+        .videojuegos-card:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea25 0%, #764ba225 100%);
+        }
+
+        .reseñas-card {
+            background: linear-gradient(135deg, #764ba215 0%, #667eea15 100%);
+        }
+
+        .reseñas-card:hover {
+            border-color: #764ba2;
+            background: linear-gradient(135deg, #764ba225 0%, #667eea25 100%);
+        }
+
+        .menu-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .menu-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+
+        .menu-description {
+            color: #4a5568;
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .menu-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .menu-features li {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            position: relative;
+            padding-left: 20px;
+            text-align: left;
+        }
+
+        .menu-features li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #38a169;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e2e8f0;
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .version {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .logo {
+                font-size: 3rem;
+            }
+            
+            .menu-options {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .menu-card {
+                min-width: auto;
+                padding: 30px 20px;
+            }
+            
+            .menu-icon {
+                font-size: 3rem;
+            }
+            
+            .menu-title {
+                font-size: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Botón de cerrar sesión -->
+        <div class="header-section">
+            <button onclick="cerrarSesion()" class="btn-logout">🚪 Cerrar Sesión</button>
+        </div>
+
+        <!-- Logo y título principal -->
+        <div class="logo">🎮</div>
+        <h1>Sistema de Gestión</h1>
+        <p class="subtitle">Administra tu colección de videojuegos y reseñas</p>
+        
+        <!-- Sección de estadísticas -->
+        <div class="stats-section">
+            <h2>📊 Resumen de tu biblioteca</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Videojuegos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">Juegos Beta</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">Reseñas</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Opciones del menú principal -->
+        <div class="menu-options">
+            <a href="videojuegos.html" class="menu-card videojuegos-card">
+                <span class="menu-icon">🎯</span>
+                <h2 class="menu-title">Videojuegos</h2>
+                <p class="menu-description">Administra tu biblioteca de videojuegos</p>
+                <ul class="menu-features">
+                    <li>Agregar nuevos juegos</li>
+                    <li>Buscar por ID o género</li>
+                    <li>Actualizar información</li>
+                    <li>Gestionar juegos Beta</li>
+                </ul>
+            </a>
+            
+            <a href="reseñas.html" class="menu-card reseñas-card">
+                <span class="menu-icon">⭐</span>
+                <h2 class="menu-title">Reseñas</h2>
+                <p class="menu-description">Gestiona las reseñas y calificaciones</p>
+                <ul class="menu-features">
+                    <li>Crear nuevas reseñas</li>
+                    <li>Buscar por ID</li>
+                    <li>Filtrar por calificación</li>
+                    <li>Editar reseñas existentes</li>
+                </ul>
+            </a>
+        </div>
+        
+        <!-- Pie de página -->
+        <div class="footer">
+            <p>Plataforma integral para la gestión de videojuegos y opiniones</p>
+            <span class="version">v2.0</span>
+        </div>
+    </div>
+
+    <!-- Script principal -->
+    <script type="module" src="dist/Script.js"></script>
+</body>
+</html>

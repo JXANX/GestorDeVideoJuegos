@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Reseñas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        h1 {
+            color: #4a5568;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-logout {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+        }
+
+        .btn-logout:hover {
+            box-shadow: 0 5px 15px rgba(229, 62, 62, 0.4);
+        }
+
+        .section {
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #764ba2;
+        }
+
+        .section h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #4a5568;
+            min-width: 120px;
+        }
+
+        input[type="text"], input[type="number"], select, textarea {
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            min-height: 100px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .review-card {
+            background: #f7fafc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #764ba2;
+        }
+
+        .review-card h4 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .review-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .rating {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .comment-section {
+            grid-column: 1 / -1;
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 5px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .flex-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .flex-item {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .form-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .form-group label {
+                min-width: auto;
+            }
+            
+            .flex-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⭐ Gestor de Reseñas</h1>
+            <div class="nav-buttons">
+                <a href="index.html" class="nav-button">🏠 Inicio</a>
+                <a href="videojuegos.html" class="nav-button">🎮 Videojuegos</a>
+                <button onclick="cerrarSesion()" class="nav-button btn-logout">🚪 Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <!-- Sección para mostrar reseñas -->
+        <div class="section">
+            <h2>📖 Todas las Reseñas</h2>
+            <button onclick="mostrarTodasLasReseñas()" class="btn-info">Mostrar Todas las Reseñas</button>
+            <div id="todasReseñas" class="results"></div>
+        </div>
+
+        <!-- Sección para agregar reseña -->
+        <div class="section">
+            <h2>➕ Agregar Reseña</h2>
+            <div class="flex-container">
+                <div class="flex-item">
+                    <div class="form-group">
+                        <label>ID Reseña:</label>
+                        <input type="number" id="nuevaReseñaId" placeholder="ID de la reseña">
+                    </div>
+                    <div class="form-group">
+                        <label>Usuario:</label>
+                        <input type="text" id="nuevoUsuario" placeholder="Nombre de usuario">
+                    </div>
+                    <div class="form-group">
+                        <label>Calificación:</label>
+                        <input type="number" id="nuevaCalificacion" step="0.1" min="1" max="10" placeholder="Calificación (1-10)">
+                    </div>
+                </div>
+                <div class="flex-item">
+                    <div class="form-group">
+                        <label>Fecha:</label>
+                        <input type="text" id="nuevaFecha" placeholder="DD-MM-YYYY">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Comentario:</label>
+                <textarea id="nuevoComentario" placeholder="Escribe tu comentario sobre el juego"></textarea>
+            </div>
+            <button onclick="agregarNuevaReseña()" class="btn-success">Agregar Reseña</button>
+        </div>
+
+        <!-- Sección para buscar reseña por ID -->
+        <div class="section">
+            <h2>🔍 Buscar Reseña por ID</h2>
+            <div class="form-group">
+                <label>ID a buscar:</label>
+                <input type="number" id="buscarReseñaId" placeholder="Ingresa el ID de la reseña">
+                <button onclick="buscarReseñaPorId()" class="btn-info">Buscar Reseña</button>
+            </div>
+            <div id="resultadoBusquedaReseña" class="results"></div>
+        </div>
+
+        <!-- Sección para filtrar reseñas por calificación -->
+        <div class="section">
+            <h2>🌟 Filtrar por Calificación</h2>
+            <div class="form-group">
+                <label>Calificación mínima:</label>
+                <input type="number" id="filtroCalificacion" step="0.1" min="1" max="10" placeholder="Ej: 8.0">
+                <button onclick="filtrarPorCalificacion()" class="btn-info">Filtrar Reseñas</button>
+            </div>
+            <div id="resultadoFiltroCalificacion" class="results"></div>
+        </div>
+
+        <!-- Sección para actualizar reseña -->
+        <div class="section">
+            <h2>✏️ Actualizar Reseña</h2>
+            <div class="flex-container">
+                <div class="flex-item">
+                    <div class="form-group">
+                        <label>ID Reseña:</label>
+                        <input type="number" id="actualizarReseñaId" placeholder="ID de la reseña a actualizar">
+                    </div>
+                    <div class="form-group">
+                        <label>Nuevo Usuario:</label>
+                        <input type="text" id="actualizarUsuario" placeholder="Nuevo usuario">
+                    </div>
+                </div>
+                <div class="flex-item">
+                    <div class="form-group">
+                        <label>Nueva Calificación:</label>
+                        <input type="number" id="actualizarCalificacion" step="0.1" min="1" max="10" placeholder="Nueva calificación">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Nuevo Comentario:</label>
+                <textarea id="actualizarComentario" placeholder="Nuevo comentario"></textarea>
+            </div>
+            <button onclick="actualizarReseñaCompleta()" class="btn-success">Actualizar Reseña</button>
+            <div id="resultadoActualizacionReseña" class="results"></div>
+        </div>
+
+        <!-- Sección para eliminar reseña -->
+        <div class="section">
+            <h2>🗑️ Eliminar Reseña</h2>
+            <div class="form-group">
+                <label>ID a eliminar:</label>
+                <input type="number" id="eliminarReseñaId" placeholder="ID de la reseña a eliminar">
+                <button onclick="eliminarReseñaCompleta()" class="btn-danger">Eliminar Reseña</button>
+            </div>
+            <div id="resultadoEliminacionReseña" class="results"></div>
+        </div>
+    </div>
+
+    <!-- Enlace al archivo JavaScript externo -->
+    <script type="module" src="dist/Script.js"></script>
+</body>
+</html>
