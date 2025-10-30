@@ -1,4 +1,4 @@
-//import axios from "axios";
+import axios from "axios";
 
 const API_URL = "https://api.rawg.io/api";
 const API_KEY = "1724bff304ea4659b952fddb50e807de";
