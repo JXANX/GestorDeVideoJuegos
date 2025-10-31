@@ -1,0 +1,12 @@
+# robots.txt para Gestor de Videojuegos
+# Indica a los buscadores qué páginas pueden rastrear
+
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /admin
+Disallow: /assets/
+Disallow: /js/
+
+# Ubicación del sitemap
+Sitemap: https://gestordevideojuegos.pages.dev/sitemap.xml
