@@ -25,6 +25,20 @@ let listaVideojuegos: Videojuego[] = datosIniciales.videojuegos;
 let listaVideojuegosBeta: VideojuegoBeta[] = datosIniciales.videojuegosBeta;
 let listaReseñas: Reseña[] = datosIniciales.reseñas;
 
+// 🔥 DEBUGGING TEMPORAL - AGREGAR ESTO
+console.log('===== DEBUG USUARIOS =====');
+console.log('Total usuarios cargados:', listaUsuarios.length);
+listaUsuarios.forEach(u => {
+    console.log('Usuario:', {
+        id: u.getIdUsuario(),
+        nombre: u.getNombre(),
+        correo: u.getCorreo(),
+        contraseña: u.getContraseña(),
+        activo: u.getActivo(),
+        tieneMetodoIniciarSesion: typeof u.iniciarSesion === 'function'
+    });
+});
+console.log('==========================');
 // Mostrar estadísticas en consola al cargar
 console.log('📊 Estadísticas de datos cargados:', obtenerEstadisticas());
 
