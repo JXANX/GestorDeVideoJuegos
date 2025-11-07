@@ -76,12 +76,19 @@ export function guardarUsuarios(usuarios: Usuario[]): boolean {
         contraseña: u.getContraseña(),
         activo: u.getActivo()
     }));
-    return guardarEnStorage(KEYS.USUARIOS, usuariosData);
+    const resultado = guardarEnStorage(KEYS.USUARIOS, usuariosData);
+    if (resultado) {
+        console.log('✅ Usuarios guardados en localStorage:', usuariosData.length);
+    }
+    return resultado;
 }
 
 export function cargarUsuarios(): Usuario[] {
     const usuariosData = obtenerDeStorage<UsuarioData[]>(KEYS.USUARIOS, []);
-    return usuariosData.map(data => 
+    console.log('📥 Cargando usuarios desde localStorage:', usuariosData.length);
+    
+    // 🔥 IMPORTANTE: Reconstruir instancias con NEW
+    const usuarios = usuariosData.map(data => 
         new Usuario(
             data.idUsuario,
             data.nombre,
@@ -90,6 +97,9 @@ export function cargarUsuarios(): Usuario[] {
             data.activo
         )
     );
+    
+    console.log('✅ Usuarios reconstruidos:', usuarios.length);
+    return usuarios;
 }
 
 // ==================== GESTIÓN DE VIDEOJUEGOS ====================
@@ -122,11 +132,18 @@ export function guardarVideojuegos(videojuegos: Videojuego[]): boolean {
         rating: v.getRating(),
         activo: v.getActivo()
     }));
-    return guardarEnStorage(KEYS.VIDEOJUEGOS, videojuegosData);
+    const resultado = guardarEnStorage(KEYS.VIDEOJUEGOS, videojuegosData);
+    if (resultado) {
+        console.log('✅ Videojuegos guardados:', videojuegosData.length);
+    }
+    return resultado;
 }
 
 export function cargarVideojuegos(): Videojuego[] {
     const videojuegosData = obtenerDeStorage<VideojuegoData[]>(KEYS.VIDEOJUEGOS, []);
+    console.log('📥 Cargando videojuegos:', videojuegosData.length);
+    
+    // 🔥 Reconstruir instancias
     return videojuegosData.map(data => 
         new Videojuego(
             data.id,
@@ -169,11 +186,18 @@ export function guardarVideojuegosBeta(videojuegosBeta: VideojuegoBeta[]): boole
         version: v.getVersion(),
         feedback: v.obtenerFeedback()
     }));
-    return guardarEnStorage(KEYS.VIDEOJUEGOS_BETA, betaData);
+    const resultado = guardarEnStorage(KEYS.VIDEOJUEGOS_BETA, betaData);
+    if (resultado) {
+        console.log('✅ Videojuegos beta guardados:', betaData.length);
+    }
+    return resultado;
 }
 
 export function cargarVideojuegosBeta(): VideojuegoBeta[] {
     const betaData = obtenerDeStorage<VideojuegoBetaData[]>(KEYS.VIDEOJUEGOS_BETA, []);
+    console.log('📥 Cargando videojuegos beta:', betaData.length);
+    
+    // 🔥 Reconstruir instancias con feedback
     return betaData.map(data => {
         const beta = new VideojuegoBeta(
             data.id,
@@ -216,11 +240,18 @@ export function guardarReseñas(reseñas: Reseña[]): boolean {
         fecha: r.getFecha(),
         activo: r.getActivo()
     }));
-    return guardarEnStorage(KEYS.RESEÑAS, reseñasData);
+    const resultado = guardarEnStorage(KEYS.RESEÑAS, reseñasData);
+    if (resultado) {
+        console.log('✅ Reseñas guardadas:', reseñasData.length);
+    }
+    return resultado;
 }
 
 export function cargarReseñas(): Reseña[] {
     const reseñasData = obtenerDeStorage<ReseñaData[]>(KEYS.RESEÑAS, []);
+    console.log('📥 Cargando reseñas:', reseñasData.length);
+    
+    // 🔥 Reconstruir instancias
     return reseñasData.map(data => 
         new Reseña(
             data.idReseña,
@@ -249,15 +280,24 @@ export function guardarSesion(usuario: Usuario): boolean {
         nombre: usuario.getNombre(),
         fechaInicio: new Date().toISOString()
     };
-    return guardarEnStorage(KEYS.SESION_ACTIVA, sesionData);
+    const resultado = guardarEnStorage(KEYS.SESION_ACTIVA, sesionData);
+    if (resultado) {
+        console.log('✅ Sesión guardada para:', sesionData.nombre);
+    }
+    return resultado;
 }
 
 export function obtenerSesion(): SesionData | null {
-    return obtenerDeStorage<SesionData | null>(KEYS.SESION_ACTIVA, null);
+    const sesion = obtenerDeStorage<SesionData | null>(KEYS.SESION_ACTIVA, null);
+    if (sesion) {
+        console.log('📋 Sesión activa:', sesion.nombre);
+    }
+    return sesion;
 }
 
 export function cerrarSesionStorage(): void {
     eliminarDeStorage(KEYS.SESION_ACTIVA);
+    console.log('🚪 Sesión cerrada');
 }
 
 export function hayUsuarioLogueado(): boolean {
@@ -272,6 +312,8 @@ export function inicializarDatosDefault(): {
     videojuegosBeta: VideojuegoBeta[];
     reseñas: Reseña[];
 } {
+    console.log('🔄 Inicializando datos...');
+    
     // Cargar datos existentes
     let usuarios = cargarUsuarios();
     let videojuegos = cargarVideojuegos();
@@ -280,6 +322,7 @@ export function inicializarDatosDefault(): {
 
     // Si no hay datos, crear datos por defecto
     if (usuarios.length === 0) {
+        console.log('⚠️ No hay usuarios, creando datos por defecto...');
         usuarios = [
             new Usuario(1, "Admin", "admin@game.com", "admin123", true),
             new Usuario(2, "Juan Pérez", "juan@correo.com", "pass123", true)
@@ -288,6 +331,7 @@ export function inicializarDatosDefault(): {
     }
 
     if (videojuegos.length === 0) {
+        console.log('⚠️ No hay videojuegos, creando datos por defecto...');
         videojuegos = [
             new Videojuego(1, "Silkson", "Metroidvania", "Tim Cherri", 2025, "Todas", "Juego 2d de bichos que pelean con aguijones", 50000, "Digital", 9.9, true),
             new Videojuego(2, "Blasphemous", "Metroidvania", "Gueim Quitchen", 2019, "Todas", "Juego 2d de un penitente que mata y busca monjas", 60000, "Digital", 9.9, true),
@@ -297,6 +341,7 @@ export function inicializarDatosDefault(): {
     }
 
     if (videojuegosBeta.length === 0) {
+        console.log('⚠️ No hay videojuegos beta, creando datos por defecto...');
         const beta1 = new VideojuegoBeta(
             101, "Hollow Knight: Silksong Beta", "Metroidvania", "Team Cherry", 
             2024, "PC", "Versión beta del esperado juego", 0, "Beta", 9.5, true,
@@ -316,6 +361,7 @@ export function inicializarDatosDefault(): {
     }
 
     if (reseñas.length === 0) {
+        console.log('⚠️ No hay reseñas, creando datos por defecto...');
         reseñas = [
             new Reseña(1, "Nigerilo", "Dislike, es muy dificil (me gusta el tubo)", 5.8, "11-09-2025", true),
             new Reseña(2, "sebs.wav", "Masterpiece, historia gooood", 9.99, "11-09-2025", true)
@@ -323,6 +369,7 @@ export function inicializarDatosDefault(): {
         guardarReseñas(reseñas);
     }
 
+    console.log('✅ Datos inicializados correctamente');
     return { usuarios, videojuegos, videojuegosBeta, reseñas };
 }
 
