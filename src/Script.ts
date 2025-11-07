@@ -2,43 +2,45 @@ import { Videojuego } from "./models/Videojuego.js";
 import { Reseña } from "./models/Reseña.js";
 import { Usuario } from "./models/Usuario.js";
 import { VideojuegoBeta } from "./models/VideoJuegoBeta.js";
-import { obtenerJuegosPopulares} from "./rawgAPI.js";
+import { obtenerJuegosPopulares } from "./rawgAPI.js";
 
-// ================== DATOS QUEMADOS - USUARIOS ==================
-const usuario1 = new Usuario(1, "Admin", "admin@game.com", "admin123", true);
-const usuario2 = new Usuario(2, "Juan Pérez", "juan@correo.com", "pass123", true);
+// ================== IMPORTAR LOCALSTORAGE ==================
+import {
+    inicializarDatosDefault,
+    guardarUsuarios,
+    guardarVideojuegos,
+    guardarVideojuegosBeta,
+    guardarReseñas,
+    guardarSesion,
+    obtenerSesion,
+    cerrarSesionStorage,
+    hayUsuarioLogueado,
+    obtenerEstadisticas
+} from "./localStorage.js";
 
-let listaUsuarios: Usuario[] = [usuario1, usuario2];
+// ================== INICIALIZAR DATOS CON LOCALSTORAGE ==================
+const datosIniciales = inicializarDatosDefault();
+let listaUsuarios: Usuario[] = datosIniciales.usuarios;
+let listaVideojuegos: Videojuego[] = datosIniciales.videojuegos;
+let listaVideojuegosBeta: VideojuegoBeta[] = datosIniciales.videojuegosBeta;
+let listaReseñas: Reseña[] = datosIniciales.reseñas;
 
-// ================== DATOS QUEMADOS - VIDEOJUEGOS ==================
-const juego1 = new Videojuego(1, "Silkson", "Metroidvania", "Tim Cherri", 2025, "Todas", "Juego 2d de bichos que pelean con aguijones", 50000, "Digital", 9.9, true);
-const juego2 = new Videojuego(2, "Blasphemous", "Metroidvania", "Gueim Quitchen", 2019, "Todas", "Juego 2d de un penitente que mata y busca monjas", 60000, "Digital", 9.9, true);
-const juego3 = new Videojuego(3, "Elden Ring", "Souls", "From Software", 2022, "Todas", "Juego de mundo abierto de volverse el señor del anillo", 300000, "Digital", 9.999, true);
+// Mostrar estadísticas en consola al cargar
+console.log('📊 Estadísticas de datos cargados:', obtenerEstadisticas());
 
-let listaVideojuegos: Videojuego[] = [juego1, juego2, juego3];
-
-// ================== DATOS QUEMADOS - VIDEOJUEGOS BETA ==================
-const beta1 = new VideojuegoBeta(
-    101, "Hollow Knight: Silksong Beta", "Metroidvania", "Team Cherry", 
-    2024, "PC", "Versión beta del esperado juego", 0, "Beta", 9.5, true,
-    "15-01-2024", "0.9.5"
-);
-beta1.agregarFeedback("Los controles se sienten muy fluidos");
-beta1.agregarFeedback("Necesita más optimización en algunas áreas");
-
-const beta2 = new VideojuegoBeta(
-    102, "Dark Souls IV Beta", "Souls", "FromSoftware", 
-    2025, "PC, PS5", "Beta cerrada del próximo souls", 0, "Beta", 8.8, true,
-    "20-03-2024", "0.8.2"
-);
-
-let listaVideojuegosBeta: VideojuegoBeta[] = [beta1, beta2];
-
-// ================== DATOS QUEMADOS - RESEÑAS ==================
-const reseña1 = new Reseña(1, "Nigerilo", "Dislike, es muy dificil (me gusta el tubo)", 5.8, "11-09-2025", true);
-const reseña2 = new Reseña(2, "sebs.wav", "Masterpiece, historia gooood", 9.99, "11-09-2025", true);
-
-let listaReseñas: Reseña[] = [reseña1, reseña2];
+// ================== PROTECCIÓN DE PÁGINAS ==================
+// Verificar si el usuario está logueado (excepto en login.html)
+if (window.location.pathname.includes('index.html') || 
+    window.location.pathname.includes('videojuegos.html') || 
+    window.location.pathname.includes('reseñas.html')) {
+    if (!hayUsuarioLogueado()) {
+        console.log('⚠️ No hay sesión activa, redirigiendo al login...');
+        window.location.href = 'login.html';
+    } else {
+        const sesion = obtenerSesion();
+        console.log('✅ Usuario logueado:', sesion?.nombre);
+    }
+}
 
 // ================== FUNCIONES DE AUTENTICACIÓN ==================
 function iniciarSesion(event: Event): boolean {
@@ -50,20 +52,20 @@ function iniciarSesion(event: Event): boolean {
     const usuario = listaUsuarios.find(u => u.getCorreo() === email && u.getActivo());
     
     if (usuario && usuario.iniciarSesion(email, password)) {
-        // Mostrar mensaje de éxito
+        // 🔥 GUARDAR SESIÓN EN LOCALSTORAGE
+        guardarSesion(usuario);
+        
         const successDiv = document.getElementById('successMessage');
         if (successDiv) {
             successDiv.textContent = '¡Inicio de sesión exitoso! Redirigiendo...';
             successDiv.style.display = 'block';
         }
         
-        // Redirigir directamente sin guardar usuario
         setTimeout(() => {
             window.location.href = 'index.html';
         }, 1000);
         return false;
     } else {
-        // Mostrar error
         const errorDiv = document.getElementById('errorMessage');
         if (errorDiv) {
             errorDiv.textContent = 'Credenciales incorrectas o cuenta inactiva';
@@ -111,6 +113,9 @@ function registrarUsuario(event: Event): boolean {
     const nuevoUsuario = new Usuario(id, nombre, email, password, true);
     listaUsuarios.push(nuevoUsuario);
     
+    // 🔥 GUARDAR EN LOCALSTORAGE
+    guardarUsuarios(listaUsuarios);
+    
     if (successDiv) {
         successDiv.textContent = '¡Usuario registrado exitosamente! Ya puedes iniciar sesión';
         successDiv.style.display = 'block';
@@ -133,7 +138,8 @@ function registrarUsuario(event: Event): boolean {
 }
 
 function cerrarSesion(): void {
-    // Simplemente redirigir al login sin limpiar nada
+    // 🔥 CERRAR SESIÓN EN LOCALSTORAGE
+    cerrarSesionStorage();
     window.location.href = 'login.html';
 }
 
@@ -227,6 +233,8 @@ function mostrarReseñas(reseñas: Reseña[], contenedorId: string): void {
 // ================== CRUD VIDEOJUEGOS ==================
 function agregarVideojuego(nuevoJuego: Videojuego): void {
     listaVideojuegos.push(nuevoJuego);
+    // 🔥 GUARDAR EN LOCALSTORAGE
+    guardarVideojuegos(listaVideojuegos);
 }
 
 function obtenerAllVideojuegos(): Videojuego[] {
@@ -239,12 +247,18 @@ function obtenerVideojuegoPorID(id: number): Videojuego | null {
 
 function eliminarVideojuego(id: number): void {
     const juego = listaVideojuegos.find(j => j.getId() === id && j.getActivo());
-    if (juego) juego.setActivo(false);
+    if (juego) {
+        juego.setActivo(false);
+        // 🔥 GUARDAR EN LOCALSTORAGE
+        guardarVideojuegos(listaVideojuegos);
+    }
 }
 
 // ================== CRUD VIDEOJUEGOS BETA ==================
 function agregarVideojuegoBeta(nuevoJuego: VideojuegoBeta): void {
     listaVideojuegosBeta.push(nuevoJuego);
+    // 🔥 GUARDAR EN LOCALSTORAGE
+    guardarVideojuegosBeta(listaVideojuegosBeta);
 }
 
 function obtenerAllVideojuegosBeta(): VideojuegoBeta[] {
@@ -257,24 +271,36 @@ function obtenerVideojuegoBetaPorID(id: number): VideojuegoBeta | null {
 
 function eliminarVideojuegoBeta(id: number): void {
     const juego = listaVideojuegosBeta.find(j => j.getId() === id && j.getActivo());
-    if (juego) juego.setActivo(false);
+    if (juego) {
+        juego.setActivo(false);
+        // 🔥 GUARDAR EN LOCALSTORAGE
+        guardarVideojuegosBeta(listaVideojuegosBeta);
+    }
 }
 
 // ================== CRUD RESEÑAS ==================
 function agregarReseña(nuevaReseña: Reseña): void {
     listaReseñas.push(nuevaReseña);
+    // 🔥 GUARDAR EN LOCALSTORAGE
+    guardarReseñas(listaReseñas);
 }
 
 function actualizarReseña(id: number, datosActualizados: Partial<Reseña>): void {
     const r = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
     if (r) {
         Object.assign(r, datosActualizados);
+        // 🔥 GUARDAR EN LOCALSTORAGE
+        guardarReseñas(listaReseñas);
     }
 }
 
 function eliminarReseña(id: number): void {
     const r = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
-    if (r) r.setActivo(false);
+    if (r) {
+        r.setActivo(false);
+        // 🔥 GUARDAR EN LOCALSTORAGE
+        guardarReseñas(listaReseñas);
+    }
 }
 
 // ================== FUNCIONES VINCULADAS A BOTONES - VIDEOJUEGOS ==================
@@ -300,7 +326,7 @@ function agregarNuevoJuego(): void {
     );
 
     agregarVideojuego(nuevoJuego);
-    alert("Juego agregado!");
+    alert("Juego agregado y guardado en LocalStorage!");
 }
 
 function buscarPorId(): void {
@@ -339,8 +365,11 @@ function actualizarJuego(): void {
         const rating = (document.getElementById('actualizarRating') as HTMLInputElement).value;
         if (rating) juego.setRating(parseFloat(rating));
 
+        // 🔥 GUARDAR EN LOCALSTORAGE
+        guardarVideojuegos(listaVideojuegos);
+
         mostrarJuegos([juego], "resultadoActualizacion");
-        alert("Juego actualizado!");
+        alert("Juego actualizado y guardado!");
     } else {
         document.getElementById("resultadoActualizacion")!.innerHTML = "<div class='no-results'>No se encontró el videojuego con ese ID</div>";
     }
@@ -376,7 +405,7 @@ function agregarNuevoJuegoBeta(): void {
     );
 
     agregarVideojuegoBeta(nuevoJuegoBeta);
-    alert("Juego Beta agregado!");
+    alert("Juego Beta agregado y guardado!");
 }
 
 function buscarBetaPorId(): void {
@@ -396,7 +425,10 @@ function agregarFeedbackBeta(): void {
     
     if (juego && feedback) {
         juego.agregarFeedback(feedback);
-        alert("Feedback agregado exitosamente!");
+        // 🔥 GUARDAR EN LOCALSTORAGE
+        guardarVideojuegosBeta(listaVideojuegosBeta);
+        
+        alert("Feedback agregado y guardado exitosamente!");
         (document.getElementById('feedbackTexto') as HTMLTextAreaElement).value = '';
         mostrarJuegosBeta([juego], "resultadoFeedback");
     } else {
@@ -418,8 +450,11 @@ function actualizarJuegoBeta(): void {
         const rating = (document.getElementById('actualizarBetaRating') as HTMLInputElement).value;
         if (rating) juego.setRating(parseFloat(rating));
 
+        // 🔥 GUARDAR EN LOCALSTORAGE
+        guardarVideojuegosBeta(listaVideojuegosBeta);
+
         mostrarJuegosBeta([juego], "resultadoActualizacionBeta");
-        alert("Juego Beta actualizado!");
+        alert("Juego Beta actualizado y guardado!");
     } else {
         document.getElementById("resultadoActualizacionBeta")!.innerHTML = "<div class='no-results'>No se encontró el videojuego beta con ese ID</div>";
     }
@@ -457,7 +492,7 @@ function agregarNuevaReseña(): void {
     const fecha = (document.getElementById('nuevaFecha') as HTMLInputElement).value;
     const nuevaReseña = new Reseña(idReseña, usuario, comentario, calificación, fecha, true);
     agregarReseña(nuevaReseña);
-    alert("Reseña agregada!");
+    alert("Reseña agregada y guardada!");
 }
 
 function mostrarTodasLasReseñas(): void {
@@ -478,7 +513,10 @@ function actualizarReseñaCompleta(): void {
         const calificacion = (document.getElementById('actualizarCalificacion') as HTMLInputElement).value;
         if (calificacion) reseña.setCalificacion(parseFloat(calificacion));
 
-        alert("Reseña actualizada!");
+        // 🔥 GUARDAR EN LOCALSTORAGE
+        guardarReseñas(listaReseñas);
+
+        alert("Reseña actualizada y guardada!");
     } else {
         alert("No se encontró la reseña con ese ID");
     }
@@ -490,11 +528,15 @@ function eliminarReseñaCompleta(): void {
     alert("Reseña eliminada!");
 }
 
-
-
+// ================== FUNCIONES PARA RAWG Y CHEAPSHARK API ==================
 import { buscarJuego, buscarJuegoPorGenero } from "./rawgAPI.js";
-
-// ================== FUNCIONES PARA RAWG API ==================
+import { 
+    buscarJuegoPorNombre, 
+    obtenerDetallesJuego, 
+    obtenerMejoresOfertas,
+    TIENDAS_CHEAPSHARK,
+    type JuegoCheapShark 
+} from "./cheapshark.js";
 
 interface JuegoRAWG {
     id: number;
@@ -511,7 +553,6 @@ interface JuegoRAWG {
     }>;
 }
 
-// Función para renderizar juegos de RAWG en el HTML
 function renderizarJuegoRAWG(juego: JuegoRAWG): string {
     const generos = juego.genres.map(g => g.name).join(', ') || 'No disponible';
     const plataformas = juego.platforms?.slice(0, 3).map(p => p.platform.name).join(', ') || 'No disponible';
@@ -549,7 +590,6 @@ function renderizarJuegoRAWG(juego: JuegoRAWG): string {
     `;
 }
 
-// Función mejorada para buscar por género (combina local + RAWG)
 async function buscarPorGeneroMejorado(): Promise<void> {
     const genero = (document.getElementById('buscarGenero') as HTMLInputElement).value;
     const container = document.getElementById('resultadoGenero')!;
@@ -562,17 +602,14 @@ async function buscarPorGeneroMejorado(): Promise<void> {
     container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Buscando en base de datos local y RAWG API...</p>';
     
     try {
-        // Buscar en datos locales
         const juegosLocales = listaVideojuegos.filter(j => 
             j.getGenero().toLowerCase().includes(genero.toLowerCase()) && j.getActivo()
         );
         
-        // Buscar en RAWG API
         const juegosAPI = await buscarJuegoPorGenero(genero);
         
         let html = '';
         
-        // Mostrar juegos locales
         if (juegosLocales.length > 0) {
             html += '<div style="margin-bottom: 30px;">';
             html += '<h3 style="color: #2d3748; margin-bottom: 15px; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">📚 Juegos en tu Colección Local</h3>';
@@ -586,7 +623,7 @@ async function buscarPorGeneroMejorado(): Promise<void> {
                             <div class="info-item"><span class="info-label">Desarrollador:</span> ${j.getDesarrollador()}</div>
                             <div class="info-item"><span class="info-label">Año:</span> ${j.getAñoLanzamiento()}</div>
                             <div class="info-item"><span class="info-label">Plataforma:</span> ${j.getPlataforma()}</div>
-                            <div class="info-item price"><span class="info-label">Precio:</span> $${j.getPrecio().toLocaleString()}</div>
+                            <div class="info-item price"><span class="info-label">Precio:</span> ${j.getPrecio().toLocaleString()}</div>
                             <div class="info-item rating"><span class="info-label">Rating:</span> ${j.getRating()}</div>
                         </div>
                         <div class="info-item" style="margin-top: 10px;"><span class="info-label">Descripción:</span> ${j.getDescripcion()}</div>
@@ -597,7 +634,6 @@ async function buscarPorGeneroMejorado(): Promise<void> {
             html += '</div>';
         }
         
-        // Mostrar juegos de RAWG
         if (juegosAPI.length > 0) {
             html += '<div style="margin-bottom: 20px;">';
             html += '<h3 style="color: #3182ce; margin-bottom: 15px; padding: 10px; background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; border-radius: 8px;">🌐 Juegos desde RAWG API</h3>';
@@ -606,7 +642,6 @@ async function buscarPorGeneroMejorado(): Promise<void> {
             html += '</div>';
         }
         
-        // Si no se encontró nada
         if (juegosLocales.length === 0 && juegosAPI.length === 0) {
             html = `
                 <div class="no-results">
@@ -628,7 +663,6 @@ async function buscarPorGeneroMejorado(): Promise<void> {
     }
 }
 
-// Función para buscar juego específico en RAWG
 async function buscarJuegoEnRAWG(): Promise<void> {
     const nombre = (document.getElementById('buscarNombreRAWG') as HTMLInputElement).value;
     const container = document.getElementById('resultadoRAWG')!;
@@ -671,7 +705,6 @@ async function buscarJuegoEnRAWG(): Promise<void> {
     }
 }
 
-// Función para mostrar juegos populares de RAWG
 async function mostrarJuegosPopularesRAWG(): Promise<void> {
     const container = document.getElementById('juegosPopularesRAWG')!;
     
@@ -707,20 +740,10 @@ async function mostrarJuegosPopularesRAWG(): Promise<void> {
         `;
     }
 }
-// Al inicio del archivo, agregar el import
-import { 
-    buscarJuegoPorNombre, 
-    obtenerDetallesJuego, 
-    obtenerMejoresOfertas,
-    TIENDAS_CHEAPSHARK,
-    type JuegoCheapShark 
-  } from "./cheapshark.js";
-  
-  // ================== FUNCIONES PARA CHEAPSHARK API ==================
-  
-  function renderizarJuegoCheapShark(juego: JuegoCheapShark): string {
+
+function renderizarJuegoCheapShark(juego: JuegoCheapShark): string {
     const precioMasBarato = parseFloat(juego.cheapest);
-    const descuento = precioMasBarato === 0 ? "GRATIS" : `$${precioMasBarato.toFixed(2)} USD`;
+    const descuento = precioMasBarato === 0 ? "GRATIS" : `${precioMasBarato.toFixed(2)} USD`;
     
     return `
       <div class="game-card" style="border-left-color: #10b981;">
@@ -751,170 +774,167 @@ import {
         </div>
       </div>
     `;
-  }
-  
-  async function buscarPreciosEnCheapShark(): Promise<void> {
+}
+
+async function buscarPreciosEnCheapShark(): Promise<void> {
     const nombre = (document.getElementById('buscarPrecioCheapShark') as HTMLInputElement).value;
     const container = document.getElementById('resultadoCheapShark')!;
     
     if (!nombre) {
-      alert('Por favor ingresa el nombre de un juego');
-      return;
+        alert('Por favor ingresa el nombre de un juego');
+        return;
     }
     
     container.innerHTML = '<p style="text-align: center; padding: 20px;">💰 Buscando precios en CheapShark...</p>';
     
     try {
-      const juegos = await buscarJuegoPorNombre(nombre);
-      
-      if (juegos.length === 0) {
-        container.innerHTML = `
-          <div class="no-results">
-            <p>❌ No se encontraron precios para "${nombre}"</p>
-          </div>
+        const juegos = await buscarJuegoPorNombre(nombre);
+        
+        if (juegos.length === 0) {
+            container.innerHTML = `
+                <div class="no-results">
+                    <p>❌ No se encontraron precios para "${nombre}"</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = `
+            <h3 style="color: #10b981; margin-bottom: 15px;">
+                💵 Precios encontrados para "${nombre}" (${juegos.length} resultados)
+            </h3>
         `;
-        return;
-      }
-      
-      let html = `
-        <h3 style="color: #10b981; margin-bottom: 15px;">
-          💵 Precios encontrados para "${nombre}" (${juegos.length} resultados)
-        </h3>
-      `;
-      html += juegos.map(j => renderizarJuegoCheapShark(j)).join('');
-      
-      container.innerHTML = html;
-      
+        html += juegos.map(j => renderizarJuegoCheapShark(j)).join('');
+        
+        container.innerHTML = html;
+        
     } catch (error) {
-      console.error('Error al buscar en CheapShark:', error);
-      container.innerHTML = `
-        <div class="no-results">
-          <p>❌ Error al buscar precios. Por favor intenta de nuevo.</p>
-        </div>
-      `;
+        console.error('Error al buscar en CheapShark:', error);
+        container.innerHTML = `
+            <div class="no-results">
+                <p>❌ Error al buscar precios. Por favor intenta de nuevo.</p>
+            </div>
+        `;
     }
-  }
-  
-  async function verDetallesOferta(gameID: string): Promise<void> {
+}
+
+async function verDetallesOferta(gameID: string): Promise<void> {
     const container = document.getElementById('detallesOferta')!;
     
     container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Cargando ofertas...</p>';
     container.scrollIntoView({ behavior: 'smooth' });
     
     try {
-      const detalles = await obtenerDetallesJuego(gameID);
-      
-      if (!detalles) {
-        container.innerHTML = '<div class="no-results">❌ No se pudieron cargar las ofertas</div>';
-        return;
-      }
-      
-      let html = `
-        <div style="background: white; padding: 20px; border-radius: 10px; margin-top: 20px;">
-          <h3 style="color: #10b981; margin-bottom: 15px;">🎮 ${detalles.info.title}</h3>
-          <img src="${detalles.info.thumb}" style="max-width: 300px; border-radius: 8px; margin-bottom: 15px;">
-          <p style="margin-bottom: 20px;"><strong>Precio más bajo histórico:</strong> 
-            <span class="price">$${detalles.cheapestPriceEver.price}</span>
-            (${new Date(detalles.cheapestPriceEver.date * 1000).toLocaleDateString()})
-          </p>
-          <h4 style="color: #2d3748; margin-bottom: 10px;">Ofertas actuales:</h4>
-          <div style="display: grid; gap: 10px;">
-      `;
-      
-      detalles.deals.forEach(deal => {
-        const tienda = TIENDAS_CHEAPSHARK[deal.storeID] || `Tienda ${deal.storeID}`;
-        const ahorro = parseFloat(deal.savings).toFixed(0);
+        const detalles = await obtenerDetallesJuego(gameID);
         
-        html += `
-          <div style="background: #f7fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-              <div>
-                <strong style="color: #2d3748;">${tienda}</strong>
-                <p style="margin-top: 5px;">
-                  <span style="text-decoration: line-through; color: #718096;">$${deal.retailPrice}</span>
-                  <span style="color: #10b981; font-size: 1.2em; font-weight: bold; margin-left: 10px;">$${deal.price}</span>
-                  <span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 5px; margin-left: 10px; font-size: 0.9em;">
-                    -${ahorro}%
-                  </span>
+        if (!detalles) {
+            container.innerHTML = '<div class="no-results">❌ No se pudieron cargar las ofertas</div>';
+            return;
+        }
+        
+        let html = `
+            <div style="background: white; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                <h3 style="color: #10b981; margin-bottom: 15px;">🎮 ${detalles.info.title}</h3>
+                <img src="${detalles.info.thumb}" style="max-width: 300px; border-radius: 8px; margin-bottom: 15px;">
+                <p style="margin-bottom: 20px;"><strong>Precio más bajo histórico:</strong> 
+                    <span class="price">${detalles.cheapestPriceEver.price}</span>
+                    (${new Date(detalles.cheapestPriceEver.date * 1000).toLocaleDateString()})
                 </p>
-              </div>
-              <a href="https://www.cheapshark.com/redirect?dealID=${deal.dealID}" 
-                 target="_blank" 
-                 class="btn-success" 
-                 style="padding: 10px 20px; text-decoration: none; font-size: 14px;">
-                🛒 Ir a la oferta
-              </a>
-            </div>
-          </div>
+                <h4 style="color: #2d3748; margin-bottom: 10px;">Ofertas actuales:</h4>
+                <div style="display: grid; gap: 10px;">
         `;
-      });
-      
-      html += `</div></div>`;
-      container.innerHTML = html;
-      
+        
+        detalles.deals.forEach(deal => {
+            const tienda = TIENDAS_CHEAPSHARK[deal.storeID] || `Tienda ${deal.storeID}`;
+            const ahorro = parseFloat(deal.savings).toFixed(0);
+            
+            html += `
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <strong style="color: #2d3748;">${tienda}</strong>
+                            <p style="margin-top: 5px;">
+                                <span style="text-decoration: line-through; color: #718096;">${deal.retailPrice}</span>
+                                <span style="color: #10b981; font-size: 1.2em; font-weight: bold; margin-left: 10px;">${deal.price}</span>
+                                <span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 5px; margin-left: 10px; font-size: 0.9em;">
+                                    -${ahorro}%
+                                </span>
+                            </p>
+                        </div>
+                        <a href="https://www.cheapshark.com/redirect?dealID=${deal.dealID}" 
+                           target="_blank" 
+                           class="btn-success" 
+                           style="padding: 10px 20px; text-decoration: none; font-size: 14px;">
+                            🛒 Ir a la oferta
+                        </a>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+        container.innerHTML = html;
+        
     } catch (error) {
-      console.error('Error al cargar detalles:', error);
-      container.innerHTML = '<div class="no-results">❌ Error al cargar ofertas</div>';
+        console.error('Error al cargar detalles:', error);
+        container.innerHTML = '<div class="no-results">❌ Error al cargar ofertas</div>';
     }
-  }
-  
-  async function mostrarMejoresOfertas(): Promise<void> {
+}
+
+async function mostrarMejoresOfertas(): Promise<void> {
     const container = document.getElementById('mejoresOfertas')!;
     
     container.innerHTML = '<p style="text-align: center; padding: 20px;">🔥 Cargando mejores ofertas...</p>';
     
     try {
-      const ofertas = await obtenerMejoresOfertas(15);
-      
-      if (ofertas.length === 0) {
-        container.innerHTML = '<div class="no-results">❌ No se pudieron cargar las ofertas</div>';
-        return;
-      }
-      
-      let html = '<h3 style="color: #10b981; margin-bottom: 15px;">🔥 Top Ofertas del Momento</h3>';
-      
-      ofertas.forEach(oferta => {
-        const tienda = TIENDAS_CHEAPSHARK[oferta.storeID] || `Tienda ${oferta.storeID}`;
-        const ahorro = parseFloat(oferta.savings).toFixed(0);
+        const ofertas = await obtenerMejoresOfertas(15);
         
-        html += `
-          <div class="game-card" style="border-left-color: #f59e0b;">
-            <div style="display: flex; gap: 15px; align-items: start; flex-wrap: wrap;">
-              <img src="${oferta.thumb}" style="width: 150px; height: 70px; object-fit: cover; border-radius: 8px;">
-              <div style="flex: 1;">
-                <h4 style="color: #f59e0b;">${oferta.title}</h4>
-                <div style="margin-top: 10px;">
-                  <p><strong>Tienda:</strong> ${tienda}</p>
-                  <p style="margin-top: 5px;">
-                    <span style="text-decoration: line-through; color: #718096;">$${oferta.normalPrice}</span>
-                    <span style="color: #10b981; font-size: 1.3em; font-weight: bold; margin-left: 10px;">$${oferta.salePrice}</span>
-                    <span style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 20px; margin-left: 10px;">
-                      🔥 -${ahorro}%
-                    </span>
-                  </p>
-                  <a href="https://www.cheapshark.com/redirect?dealID=${oferta.dealID}" 
-                     target="_blank" 
-                     class="btn-success" 
-                     style="margin-top: 10px; display: inline-block; text-decoration: none;">
-                    🛒 Ver Oferta
-                  </a>
+        if (ofertas.length === 0) {
+            container.innerHTML = '<div class="no-results">❌ No se pudieron cargar las ofertas</div>';
+            return;
+        }
+        
+        let html = '<h3 style="color: #10b981; margin-bottom: 15px;">🔥 Top Ofertas del Momento</h3>';
+        
+        ofertas.forEach(oferta => {
+            const tienda = TIENDAS_CHEAPSHARK[oferta.storeID] || `Tienda ${oferta.storeID}`;
+            const ahorro = parseFloat(oferta.savings).toFixed(0);
+            
+            html += `
+                <div class="game-card" style="border-left-color: #f59e0b;">
+                    <div style="display: flex; gap: 15px; align-items: start; flex-wrap: wrap;">
+                        <img src="${oferta.thumb}" style="width: 150px; height: 70px; object-fit: cover; border-radius: 8px;">
+                        <div style="flex: 1;">
+                            <h4 style="color: #f59e0b;">${oferta.title}</h4>
+                            <div style="margin-top: 10px;">
+                                <p><strong>Tienda:</strong> ${tienda}</p>
+                                <p style="margin-top: 5px;">
+                                    <span style="text-decoration: line-through; color: #718096;">${oferta.normalPrice}</span>
+                                    <span style="color: #10b981; font-size: 1.3em; font-weight: bold; margin-left: 10px;">${oferta.salePrice}</span>
+                                    <span style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 20px; margin-left: 10px;">
+                                        🔥 -${ahorro}%
+                                    </span>
+                                </p>
+                                <a href="https://www.cheapshark.com/redirect?dealID=${oferta.dealID}" 
+                                   target="_blank" 
+                                   class="btn-success" 
+                                   style="margin-top: 10px; display: inline-block; text-decoration: none;">
+                                    🛒 Ver Oferta
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-      
-      container.innerHTML = html;
-      
+            `;
+        });
+        
+        container.innerHTML = html;
+        
     } catch (error) {
-      console.error('Error:', error);
-      container.innerHTML = '<div class="no-results">❌ Error al cargar ofertas</div>';
+        console.error('Error:', error);
+        container.innerHTML = '<div class="no-results">❌ Error al cargar ofertas</div>';
     }
-  }
-  
-  // Exponer funciones al window
-  
+}
 
 // ================== EXPONER FUNCIONES AL HTML ==================
 (window as any).iniciarSesion = iniciarSesion;
@@ -944,4 +964,3 @@ import {
 (window as any).buscarPreciosEnCheapShark = buscarPreciosEnCheapShark;
 (window as any).verDetallesOferta = verDetallesOferta;
 (window as any).mostrarMejoresOfertas = mostrarMejoresOfertas;
-(window as any).buscarPreciosEnCheapShark = buscarPreciosEnCheapShark;
