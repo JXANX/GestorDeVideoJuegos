@@ -1,4 +1,3 @@
-//import axios from "axios";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -8,6 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+import axios from "axios";
 const API_URL = "https://api.rawg.io/api";
 const API_KEY = "1724bff304ea4659b952fddb50e807de";
 /**
