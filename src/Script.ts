@@ -35,36 +35,33 @@ let listaReseñas: Reseña[] = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
 
-// ================== PROTECCIÓN DE PÁGINAS - SOLUCIÓN DEFINITIVA ANTI-BUCLE ==================
-const path = window.location.pathname;
-let paginaActual = path.split('/').pop()?.toLowerCase() || 'index.html';
-
-// Algunos servidores devuelven "/" sin nombre de archivo
-if (paginaActual === '' || paginaActual === '/') {
-    paginaActual = 'index.html';
-}
-
-// Definimos páginas públicas
-const paginasPublicas = ['login.html', 'registro.html'];
-const esPaginaPublica = paginasPublicas.includes(paginaActual);
+// ================== PROTECCIÓN DE SESIÓN PARA CLOUDFLARE PAGES ==================
+const rutaActual = window.location.pathname.toLowerCase();
 const usuarioLogueado = hayUsuarioLogueado();
 
-// Rutas absolutas para evitar rutas relativas inconsistentes
-const urlLogin = `${window.location.origin}/login.html`;
-const urlHome = `${window.location.origin}/index.html`;
+// Define tus rutas públicas (sin extensión)
+const rutasPublicas = ['/login', '/registro', '/']; // "/" es la raíz
+const estaEnRutaPublica = rutasPublicas.includes(rutaActual);
 
-// 🧠 Control de flujo sin posibilidad de bucles:
-if (usuarioLogueado && paginaActual === 'login.html') {
-    // Usuario con sesión intenta abrir login → mandarlo al home
-    if (!window.location.href.endsWith('/index.html') && window.location.pathname !== '/' ) {
-        console.log('➡️ Sesión activa detectada, redirigiendo al inicio...');
+// Define rutas absolutas (sin .html)
+const urlLogin = `${window.location.origin}/login`;
+const urlHome = `${window.location.origin}/`;
+
+console.log('🌐 Ruta actual:', rutaActual);
+console.log('👤 Usuario logueado:', usuarioLogueado);
+
+// 🧠 Lógica central anti-bucle
+if (usuarioLogueado && rutaActual === '/login') {
+    // Ya logueado y está en login → enviarlo al home
+    if (window.location.href !== urlHome) {
+        console.log('➡️ Sesión activa. Redirigiendo al home...');
         window.location.replace(urlHome);
     }
 } 
-else if (!usuarioLogueado && !esPaginaPublica) {
-    // Usuario no logueado intenta abrir página privada → al login
-    if (!window.location.href.endsWith('/login.html')) {
-        console.log('⚠️ No hay sesión activa, redirigiendo al login...');
+else if (!usuarioLogueado && !estaEnRutaPublica) {
+    // No logueado y en ruta privada → al login
+    if (window.location.href !== urlLogin) {
+        console.log('⚠️ No hay sesión activa. Redirigiendo al login...');
         window.location.replace(urlLogin);
     }
 } 
@@ -74,9 +71,10 @@ else {
         const sesion = obtenerSesion();
         console.log('✅ Usuario logueado:', sesion?.nombre);
     } else {
-        console.log('📄 Página pública detectada:', paginaActual);
+        console.log('📄 Ruta pública detectada:', rutaActual);
     }
 }
+
 
 
 
