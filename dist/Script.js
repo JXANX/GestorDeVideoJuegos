@@ -13,29 +13,16 @@ import { Usuario } from "./models/Usuario.js";
 import { VideojuegoBeta } from "./models/VideoJuegoBeta.js";
 import { obtenerJuegosPopulares } from "./rawgAPI.js";
 // ================== IMPORTAR LOCALSTORAGE ==================
-import { inicializarDatosDefault, guardarUsuarios, guardarVideojuegos, guardarVideojuegosBeta, guardarReseñas, guardarSesion, obtenerSesion, cerrarSesionStorage, hayUsuarioLogueado, obtenerEstadisticas } from "./localStorage.js";
+import { inicializarDatosDefault, guardarUsuarios, guardarVideojuegos, guardarVideojuegosBeta, guardarReseñas, guardarSesion, obtenerSesion, cerrarSesionStorage, hayUsuarioLogueado, debugearEstado } from "./localStorage.js";
 // ================== INICIALIZAR DATOS CON LOCALSTORAGE ==================
+console.log('🚀 Iniciando aplicación...');
 const datosIniciales = inicializarDatosDefault();
 let listaUsuarios = datosIniciales.usuarios;
 let listaVideojuegos = datosIniciales.videojuegos;
 let listaVideojuegosBeta = datosIniciales.videojuegosBeta;
 let listaReseñas = datosIniciales.reseñas;
-// 🔥 DEBUGGING TEMPORAL - AGREGAR ESTO
-console.log('===== DEBUG USUARIOS =====');
-console.log('Total usuarios cargados:', listaUsuarios.length);
-listaUsuarios.forEach(u => {
-    console.log('Usuario:', {
-        id: u.getIdUsuario(),
-        nombre: u.getNombre(),
-        correo: u.getCorreo(),
-        contraseña: u.getContraseña(),
-        activo: u.getActivo(),
-        tieneMetodoIniciarSesion: typeof u.iniciarSesion === 'function'
-    });
-});
-console.log('==========================');
-// Mostrar estadísticas en consola al cargar
-console.log('📊 Estadísticas de datos cargados:', obtenerEstadisticas());
+// Mostrar estado actual en consola
+debugearEstado();
 // ================== PROTECCIÓN DE PÁGINAS ==================
 // Verificar si el usuario está logueado (excepto en login.html)
 if (window.location.pathname.includes('index.html') ||
@@ -55,9 +42,36 @@ function iniciarSesion(event) {
     event.preventDefault();
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
-    const usuario = listaUsuarios.find(u => u.getCorreo() === email && u.getActivo());
-    if (usuario && usuario.iniciarSesion(email, password)) {
-        // 🔥 GUARDAR SESIÓN EN LOCALSTORAGE
+    console.log('🔐 Intento de login:', email);
+    console.log('📋 Usuarios disponibles:', listaUsuarios.length);
+    // Buscar usuario activo con ese correo
+    const usuario = listaUsuarios.find(u => {
+        const coincideCorreo = u.getCorreo() === email;
+        const estaActivo = u.getActivo();
+        console.log(`  Verificando ${u.getCorreo()}:`, { coincideCorreo, estaActivo });
+        return coincideCorreo && estaActivo;
+    });
+    if (!usuario) {
+        console.error('❌ Usuario no encontrado o inactivo');
+        const errorDiv = document.getElementById('errorMessage');
+        if (errorDiv) {
+            errorDiv.textContent = 'Usuario no encontrado o cuenta inactiva';
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 4000);
+        }
+        return false;
+    }
+    // Verificar que el usuario tiene el método iniciarSesion
+    if (typeof usuario.iniciarSesion !== 'function') {
+        console.error('❌ ERROR CRÍTICO: El usuario no tiene el método iniciarSesion');
+        console.log('Usuario defectuoso:', usuario);
+        alert('Error en la aplicación. Por favor, limpia el caché y recarga.');
+        return false;
+    }
+    // Intentar iniciar sesión
+    const loginExitoso = usuario.iniciarSesion(email, password);
+    if (loginExitoso) {
+        console.log('✅ Login exitoso');
         guardarSesion(usuario);
         const successDiv = document.getElementById('successMessage');
         if (successDiv) {
@@ -70,13 +84,12 @@ function iniciarSesion(event) {
         return false;
     }
     else {
+        console.error('❌ Contraseña incorrecta');
         const errorDiv = document.getElementById('errorMessage');
         if (errorDiv) {
-            errorDiv.textContent = 'Credenciales incorrectas o cuenta inactiva';
+            errorDiv.textContent = 'Contraseña incorrecta';
             errorDiv.style.display = 'block';
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 4000);
+            setTimeout(() => errorDiv.style.display = 'none', 4000);
         }
         return false;
     }

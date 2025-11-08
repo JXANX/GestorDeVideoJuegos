@@ -1,4 +1,4 @@
-// localStorage.ts
+// localStorage.ts - VERSIÓN CORREGIDA
 // Módulo para gestionar el almacenamiento local de datos
 
 import { Usuario } from "./models/Usuario.js";
@@ -24,9 +24,10 @@ function guardarEnStorage(key: string, data: any): boolean {
     try {
         const jsonData = JSON.stringify(data);
         localStorage.setItem(key, jsonData);
+        console.log(`✅ Guardado en ${key}:`, data);
         return true;
     } catch (error) {
-        console.error(`Error al guardar en LocalStorage (${key}):`, error);
+        console.error(`❌ Error al guardar en LocalStorage (${key}):`, error);
         return false;
     }
 }
@@ -38,11 +39,14 @@ function obtenerDeStorage<T>(key: string, defaultValue: T): T {
     try {
         const jsonData = localStorage.getItem(key);
         if (jsonData === null) {
+            console.log(`ℹ️ No hay datos en ${key}, usando valores por defecto`);
             return defaultValue;
         }
-        return JSON.parse(jsonData) as T;
+        const parsed = JSON.parse(jsonData) as T;
+        console.log(`📥 Datos cargados desde ${key}:`, parsed);
+        return parsed;
     } catch (error) {
-        console.error(`Error al leer de LocalStorage (${key}):`, error);
+        console.error(`❌ Error al leer de LocalStorage (${key}):`, error);
         return defaultValue;
     }
 }
@@ -53,8 +57,9 @@ function obtenerDeStorage<T>(key: string, defaultValue: T): T {
 function eliminarDeStorage(key: string): void {
     try {
         localStorage.removeItem(key);
+        console.log(`🗑️ Eliminado: ${key}`);
     } catch (error) {
-        console.error(`Error al eliminar de LocalStorage (${key}):`, error);
+        console.error(`❌ Error al eliminar de LocalStorage (${key}):`, error);
     }
 }
 
@@ -76,29 +81,31 @@ export function guardarUsuarios(usuarios: Usuario[]): boolean {
         contraseña: u.getContraseña(),
         activo: u.getActivo()
     }));
-    const resultado = guardarEnStorage(KEYS.USUARIOS, usuariosData);
-    if (resultado) {
-        console.log('✅ Usuarios guardados en localStorage:', usuariosData.length);
-    }
-    return resultado;
+    return guardarEnStorage(KEYS.USUARIOS, usuariosData);
 }
 
 export function cargarUsuarios(): Usuario[] {
     const usuariosData = obtenerDeStorage<UsuarioData[]>(KEYS.USUARIOS, []);
-    console.log('📥 Cargando usuarios desde localStorage:', usuariosData.length);
     
-    // 🔥 IMPORTANTE: Reconstruir instancias con NEW
-    const usuarios = usuariosData.map(data => 
-        new Usuario(
+    // 🔥 CRÍTICO: Reconstruir instancias completas con NEW
+    const usuarios = usuariosData.map(data => {
+        const usuario = new Usuario(
             data.idUsuario,
             data.nombre,
             data.correo,
             data.contraseña,
             data.activo
-        )
-    );
+        );
+        
+        // Verificar que tiene todos los métodos
+        console.log(`✅ Usuario reconstruido: ${data.nombre}`, {
+            tieneIniciarSesion: typeof usuario.iniciarSesion === 'function',
+            tieneGetters: typeof usuario.getNombre === 'function'
+        });
+        
+        return usuario;
+    });
     
-    console.log('✅ Usuarios reconstruidos:', usuarios.length);
     return usuarios;
 }
 
@@ -132,18 +139,12 @@ export function guardarVideojuegos(videojuegos: Videojuego[]): boolean {
         rating: v.getRating(),
         activo: v.getActivo()
     }));
-    const resultado = guardarEnStorage(KEYS.VIDEOJUEGOS, videojuegosData);
-    if (resultado) {
-        console.log('✅ Videojuegos guardados:', videojuegosData.length);
-    }
-    return resultado;
+    return guardarEnStorage(KEYS.VIDEOJUEGOS, videojuegosData);
 }
 
 export function cargarVideojuegos(): Videojuego[] {
     const videojuegosData = obtenerDeStorage<VideojuegoData[]>(KEYS.VIDEOJUEGOS, []);
-    console.log('📥 Cargando videojuegos:', videojuegosData.length);
     
-    // 🔥 Reconstruir instancias
     return videojuegosData.map(data => 
         new Videojuego(
             data.id,
@@ -186,18 +187,12 @@ export function guardarVideojuegosBeta(videojuegosBeta: VideojuegoBeta[]): boole
         version: v.getVersion(),
         feedback: v.obtenerFeedback()
     }));
-    const resultado = guardarEnStorage(KEYS.VIDEOJUEGOS_BETA, betaData);
-    if (resultado) {
-        console.log('✅ Videojuegos beta guardados:', betaData.length);
-    }
-    return resultado;
+    return guardarEnStorage(KEYS.VIDEOJUEGOS_BETA, betaData);
 }
 
 export function cargarVideojuegosBeta(): VideojuegoBeta[] {
     const betaData = obtenerDeStorage<VideojuegoBetaData[]>(KEYS.VIDEOJUEGOS_BETA, []);
-    console.log('📥 Cargando videojuegos beta:', betaData.length);
     
-    // 🔥 Reconstruir instancias con feedback
     return betaData.map(data => {
         const beta = new VideojuegoBeta(
             data.id,
@@ -214,8 +209,12 @@ export function cargarVideojuegosBeta(): VideojuegoBeta[] {
             data.fechaAcceso,
             data.version
         );
+        
         // Restaurar feedback
-        data.feedback.forEach(fb => beta.agregarFeedback(fb));
+        if (data.feedback && Array.isArray(data.feedback)) {
+            data.feedback.forEach(fb => beta.agregarFeedback(fb));
+        }
+        
         return beta;
     });
 }
@@ -240,18 +239,12 @@ export function guardarReseñas(reseñas: Reseña[]): boolean {
         fecha: r.getFecha(),
         activo: r.getActivo()
     }));
-    const resultado = guardarEnStorage(KEYS.RESEÑAS, reseñasData);
-    if (resultado) {
-        console.log('✅ Reseñas guardadas:', reseñasData.length);
-    }
-    return resultado;
+    return guardarEnStorage(KEYS.RESEÑAS, reseñasData);
 }
 
 export function cargarReseñas(): Reseña[] {
     const reseñasData = obtenerDeStorage<ReseñaData[]>(KEYS.RESEÑAS, []);
-    console.log('📥 Cargando reseñas:', reseñasData.length);
     
-    // 🔥 Reconstruir instancias
     return reseñasData.map(data => 
         new Reseña(
             data.idReseña,
@@ -280,18 +273,11 @@ export function guardarSesion(usuario: Usuario): boolean {
         nombre: usuario.getNombre(),
         fechaInicio: new Date().toISOString()
     };
-    const resultado = guardarEnStorage(KEYS.SESION_ACTIVA, sesionData);
-    if (resultado) {
-        console.log('✅ Sesión guardada para:', sesionData.nombre);
-    }
-    return resultado;
+    return guardarEnStorage(KEYS.SESION_ACTIVA, sesionData);
 }
 
 export function obtenerSesion(): SesionData | null {
     const sesion = obtenerDeStorage<SesionData | null>(KEYS.SESION_ACTIVA, null);
-    if (sesion) {
-        console.log('📋 Sesión activa:', sesion.nombre);
-    }
     return sesion;
 }
 
@@ -375,17 +361,6 @@ export function inicializarDatosDefault(): {
 
 // ==================== UTILIDADES ====================
 
-/**
- * Limpia todos los datos del LocalStorage
- */
-export function limpiarTodosLosDatos(): void {
-    eliminarDeStorage(KEYS.USUARIOS);
-    eliminarDeStorage(KEYS.VIDEOJUEGOS);
-    eliminarDeStorage(KEYS.VIDEOJUEGOS_BETA);
-    eliminarDeStorage(KEYS.RESEÑAS);
-    eliminarDeStorage(KEYS.SESION_ACTIVA);
-    console.log('✅ Todos los datos han sido eliminados del LocalStorage');
-}
 
 /**
  * Exporta todos los datos como JSON para backup
@@ -414,4 +389,32 @@ export function obtenerEstadisticas(): {
         videojuegosBeta: cargarVideojuegosBeta().length,
         reseñas: cargarReseñas().length
     };
+}
+
+// ==================== FUNCIÓN DE DEBUGGING ====================
+/**
+ * Muestra en consola el estado actual de todos los datos
+ */
+export function debugearEstado(): void {
+    console.log('═══════════════════════════════════');
+    console.log('🔍 ESTADO ACTUAL DEL LOCALSTORAGE');
+    console.log('═══════════════════════════════════');
+    
+    const usuarios = cargarUsuarios();
+    console.log('👥 USUARIOS:', usuarios.length);
+    usuarios.forEach(u => {
+        console.log(`  - ${u.getNombre()} (${u.getCorreo()})`, {
+            id: u.getIdUsuario(),
+            activo: u.getActivo(),
+            tieneMetodos: typeof u.iniciarSesion === 'function'
+        });
+    });
+    
+    const sesion = obtenerSesion();
+    console.log('🔐 SESIÓN ACTIVA:', sesion ? sesion.nombre : 'Ninguna');
+    
+    console.log('🎮 VIDEOJUEGOS:', cargarVideojuegos().length);
+    console.log('🧪 BETAS:', cargarVideojuegosBeta().length);
+    console.log('⭐ RESEÑAS:', cargarReseñas().length);
+    console.log('═══════════════════════════════════');
 }

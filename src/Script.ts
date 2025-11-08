@@ -15,32 +15,21 @@ import {
     obtenerSesion,
     cerrarSesionStorage,
     hayUsuarioLogueado,
-    obtenerEstadisticas
+    obtenerEstadisticas,
+    debugearEstado
 } from "./localStorage.js";
 
 // ================== INICIALIZAR DATOS CON LOCALSTORAGE ==================
+console.log('🚀 Iniciando aplicación...');
+
 const datosIniciales = inicializarDatosDefault();
 let listaUsuarios: Usuario[] = datosIniciales.usuarios;
 let listaVideojuegos: Videojuego[] = datosIniciales.videojuegos;
 let listaVideojuegosBeta: VideojuegoBeta[] = datosIniciales.videojuegosBeta;
 let listaReseñas: Reseña[] = datosIniciales.reseñas;
 
-// 🔥 DEBUGGING TEMPORAL - AGREGAR ESTO
-console.log('===== DEBUG USUARIOS =====');
-console.log('Total usuarios cargados:', listaUsuarios.length);
-listaUsuarios.forEach(u => {
-    console.log('Usuario:', {
-        id: u.getIdUsuario(),
-        nombre: u.getNombre(),
-        correo: u.getCorreo(),
-        contraseña: u.getContraseña(),
-        activo: u.getActivo(),
-        tieneMetodoIniciarSesion: typeof u.iniciarSesion === 'function'
-    });
-});
-console.log('==========================');
-// Mostrar estadísticas en consola al cargar
-console.log('📊 Estadísticas de datos cargados:', obtenerEstadisticas());
+// Mostrar estado actual en consola
+debugearEstado();
 
 // ================== PROTECCIÓN DE PÁGINAS ==================
 // Verificar si el usuario está logueado (excepto en login.html)
@@ -63,10 +52,41 @@ function iniciarSesion(event: Event): boolean {
     const email = (document.getElementById('loginEmail') as HTMLInputElement).value;
     const password = (document.getElementById('loginPassword') as HTMLInputElement).value;
     
-    const usuario = listaUsuarios.find(u => u.getCorreo() === email && u.getActivo());
+    console.log('🔐 Intento de login:', email);
+    console.log('📋 Usuarios disponibles:', listaUsuarios.length);
     
-    if (usuario && usuario.iniciarSesion(email, password)) {
-        // 🔥 GUARDAR SESIÓN EN LOCALSTORAGE
+    // Buscar usuario activo con ese correo
+    const usuario = listaUsuarios.find(u => {
+        const coincideCorreo = u.getCorreo() === email;
+        const estaActivo = u.getActivo();
+        console.log(`  Verificando ${u.getCorreo()}:`, { coincideCorreo, estaActivo });
+        return coincideCorreo && estaActivo;
+    });
+    
+    if (!usuario) {
+        console.error('❌ Usuario no encontrado o inactivo');
+        const errorDiv = document.getElementById('errorMessage');
+        if (errorDiv) {
+            errorDiv.textContent = 'Usuario no encontrado o cuenta inactiva';
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 4000);
+        }
+        return false;
+    }
+    
+    // Verificar que el usuario tiene el método iniciarSesion
+    if (typeof usuario.iniciarSesion !== 'function') {
+        console.error('❌ ERROR CRÍTICO: El usuario no tiene el método iniciarSesion');
+        console.log('Usuario defectuoso:', usuario);
+        alert('Error en la aplicación. Por favor, limpia el caché y recarga.');
+        return false;
+    }
+    
+    // Intentar iniciar sesión
+    const loginExitoso = usuario.iniciarSesion(email, password);
+    
+    if (loginExitoso) {
+        console.log('✅ Login exitoso');
         guardarSesion(usuario);
         
         const successDiv = document.getElementById('successMessage');
@@ -80,14 +100,12 @@ function iniciarSesion(event: Event): boolean {
         }, 1000);
         return false;
     } else {
+        console.error('❌ Contraseña incorrecta');
         const errorDiv = document.getElementById('errorMessage');
         if (errorDiv) {
-            errorDiv.textContent = 'Credenciales incorrectas o cuenta inactiva';
+            errorDiv.textContent = 'Contraseña incorrecta';
             errorDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 4000);
+            setTimeout(() => errorDiv.style.display = 'none', 4000);
         }
         return false;
     }
