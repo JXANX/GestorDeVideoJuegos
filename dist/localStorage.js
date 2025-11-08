@@ -261,3 +261,4 @@ export function debugearEstado() {
     console.log('⭐ RESEÑAS:', cargarReseñas().length);
     console.log('═══════════════════════════════════');
 }
+//# sourceMappingURL=localStorage.js.map

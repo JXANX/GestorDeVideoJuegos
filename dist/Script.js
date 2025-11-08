@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import { Videojuego } from "./models/Videojuego.js";
 import { Reseña } from "./models/Reseña.js";
 import { Usuario } from "./models/Usuario.js";
@@ -34,7 +25,7 @@ if (window.location.pathname.includes('index.html') ||
     }
     else {
         const sesion = obtenerSesion();
-        console.log('✅ Usuario logueado:', sesion === null || sesion === void 0 ? void 0 : sesion.nombre);
+        console.log('✅ Usuario logueado:', sesion?.nombre);
     }
 }
 // ================== FUNCIONES DE AUTENTICACIÓN ==================
@@ -492,9 +483,8 @@ function eliminarReseñaCompleta() {
 import { buscarJuego, buscarJuegoPorGenero } from "./rawgAPI.js";
 import { buscarJuegoPorNombre, obtenerDetallesJuego, obtenerMejoresOfertas, TIENDAS_CHEAPSHARK } from "./cheapshark.js";
 function renderizarJuegoRAWG(juego) {
-    var _a;
     const generos = juego.genres.map(g => g.name).join(', ') || 'No disponible';
-    const plataformas = ((_a = juego.platforms) === null || _a === void 0 ? void 0 : _a.slice(0, 3).map(p => p.platform.name).join(', ')) || 'No disponible';
+    const plataformas = juego.platforms?.slice(0, 3).map(p => p.platform.name).join(', ') || 'No disponible';
     return `
         <div class="game-card" style="border-left-color: #3182ce;">
             <div style="display: flex; gap: 15px; align-items: start; flex-wrap: wrap;">
@@ -527,24 +517,23 @@ function renderizarJuegoRAWG(juego) {
         </div>
     `;
 }
-function buscarPorGeneroMejorado() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const genero = document.getElementById('buscarGenero').value;
-        const container = document.getElementById('resultadoGenero');
-        if (!genero) {
-            alert('Por favor ingresa un género');
-            return;
-        }
-        container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Buscando en base de datos local y RAWG API...</p>';
-        try {
-            const juegosLocales = listaVideojuegos.filter(j => j.getGenero().toLowerCase().includes(genero.toLowerCase()) && j.getActivo());
-            const juegosAPI = yield buscarJuegoPorGenero(genero);
-            let html = '';
-            if (juegosLocales.length > 0) {
-                html += '<div style="margin-bottom: 30px;">';
-                html += '<h3 style="color: #2d3748; margin-bottom: 15px; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">📚 Juegos en tu Colección Local</h3>';
-                html += juegosLocales.map(j => {
-                    const cardHTML = `
+async function buscarPorGeneroMejorado() {
+    const genero = document.getElementById('buscarGenero').value;
+    const container = document.getElementById('resultadoGenero');
+    if (!genero) {
+        alert('Por favor ingresa un género');
+        return;
+    }
+    container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Buscando en base de datos local y RAWG API...</p>';
+    try {
+        const juegosLocales = listaVideojuegos.filter(j => j.getGenero().toLowerCase().includes(genero.toLowerCase()) && j.getActivo());
+        const juegosAPI = await buscarJuegoPorGenero(genero);
+        let html = '';
+        if (juegosLocales.length > 0) {
+            html += '<div style="margin-bottom: 30px;">';
+            html += '<h3 style="color: #2d3748; margin-bottom: 15px; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">📚 Juegos en tu Colección Local</h3>';
+            html += juegosLocales.map(j => {
+                const cardHTML = `
                     <div class="game-card">
                         <h4>${j.getTítulo()}</h4>
                         <div class="game-info">
@@ -559,105 +548,100 @@ function buscarPorGeneroMejorado() {
                         <div class="info-item" style="margin-top: 10px;"><span class="info-label">Descripción:</span> ${j.getDescripcion()}</div>
                     </div>
                 `;
-                    return cardHTML;
-                }).join('');
-                html += '</div>';
-            }
-            if (juegosAPI.length > 0) {
-                html += '<div style="margin-bottom: 20px;">';
-                html += '<h3 style="color: #3182ce; margin-bottom: 15px; padding: 10px; background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; border-radius: 8px;">🌐 Juegos desde RAWG API</h3>';
-                html += `<p style="color: #4a5568; margin-bottom: 15px; font-style: italic;">Se encontraron ${juegosAPI.length} juegos del género "${genero}"</p>`;
-                html += juegosAPI.slice(0, 15).map(j => renderizarJuegoRAWG(j)).join('');
-                html += '</div>';
-            }
-            if (juegosLocales.length === 0 && juegosAPI.length === 0) {
-                html = `
+                return cardHTML;
+            }).join('');
+            html += '</div>';
+        }
+        if (juegosAPI.length > 0) {
+            html += '<div style="margin-bottom: 20px;">';
+            html += '<h3 style="color: #3182ce; margin-bottom: 15px; padding: 10px; background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; border-radius: 8px;">🌐 Juegos desde RAWG API</h3>';
+            html += `<p style="color: #4a5568; margin-bottom: 15px; font-style: italic;">Se encontraron ${juegosAPI.length} juegos del género "${genero}"</p>`;
+            html += juegosAPI.slice(0, 15).map(j => renderizarJuegoRAWG(j)).join('');
+            html += '</div>';
+        }
+        if (juegosLocales.length === 0 && juegosAPI.length === 0) {
+            html = `
                 <div class="no-results">
                     <p>❌ No se encontraron juegos del género "${genero}" ni en tu colección ni en RAWG</p>
                     <p style="margin-top: 10px; color: #718096;">Intenta con otros géneros como: Action, Adventure, RPG, Strategy, Indie, etc.</p>
                 </div>
             `;
-            }
-            container.innerHTML = html;
         }
-        catch (error) {
-            console.error('Error al buscar juegos:', error);
-            container.innerHTML = `
+        container.innerHTML = html;
+    }
+    catch (error) {
+        console.error('Error al buscar juegos:', error);
+        container.innerHTML = `
             <div class="no-results">
                 <p>❌ Error al buscar juegos. Por favor intenta de nuevo.</p>
             </div>
         `;
-        }
-    });
+    }
 }
-function buscarJuegoEnRAWG() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const nombre = document.getElementById('buscarNombreRAWG').value;
-        const container = document.getElementById('resultadoRAWG');
-        if (!nombre) {
-            alert('Por favor ingresa el nombre de un juego');
-            return;
-        }
-        container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Buscando en RAWG API...</p>';
-        try {
-            const juegos = yield buscarJuego(nombre);
-            if (juegos.length === 0) {
-                container.innerHTML = `
+async function buscarJuegoEnRAWG() {
+    const nombre = document.getElementById('buscarNombreRAWG').value;
+    const container = document.getElementById('resultadoRAWG');
+    if (!nombre) {
+        alert('Por favor ingresa el nombre de un juego');
+        return;
+    }
+    container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Buscando en RAWG API...</p>';
+    try {
+        const juegos = await buscarJuego(nombre);
+        if (juegos.length === 0) {
+            container.innerHTML = `
                 <div class="no-results">
                     <p>❌ No se encontraron juegos con el nombre "${nombre}"</p>
                 </div>
             `;
-                return;
-            }
-            let html = `
+            return;
+        }
+        let html = `
             <h3 style="color: #3182ce; margin-bottom: 15px;">
                 🎮 Resultados para "${nombre}" (${juegos.length} encontrados)
             </h3>
         `;
-            html += juegos.slice(0, 10).map(j => renderizarJuegoRAWG(j)).join('');
-            container.innerHTML = html;
-        }
-        catch (error) {
-            console.error('Error al buscar en RAWG:', error);
-            container.innerHTML = `
+        html += juegos.slice(0, 10).map(j => renderizarJuegoRAWG(j)).join('');
+        container.innerHTML = html;
+    }
+    catch (error) {
+        console.error('Error al buscar en RAWG:', error);
+        container.innerHTML = `
             <div class="no-results">
                 <p>❌ Error al buscar en RAWG. Por favor intenta de nuevo.</p>
             </div>
         `;
-        }
-    });
+    }
 }
-function mostrarJuegosPopularesRAWG() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const container = document.getElementById('juegosPopularesRAWG');
-        container.innerHTML = '<p style="text-align: center; padding: 20px;">🔄 Cargando juegos populares desde RAWG...</p>';
-        try {
-            const juegos = yield obtenerJuegosPopulares();
-            if (juegos.length === 0) {
-                container.innerHTML = `
+async function mostrarJuegosPopularesRAWG() {
+    const container = document.getElementById('juegosPopularesRAWG');
+    container.innerHTML = '<p style="text-align: center; padding: 20px;">🔄 Cargando juegos populares desde RAWG...</p>';
+    try {
+        const juegos = await obtenerJuegosPopulares();
+        if (juegos.length === 0) {
+            container.innerHTML = `
                 <div class="no-results">
                     <p>❌ No se pudieron cargar los juegos populares</p>
                 </div>
             `;
-                return;
-            }
-            let html = `
+            return;
+        }
+        let html = `
             <h3 style="color: #3182ce; margin-bottom: 15px;">
                 🌟 Top ${juegos.length} Juegos Mejor Valorados en RAWG
             </h3>
         `;
-            html += juegos.map(j => renderizarJuegoRAWG(j)).join('');
-            container.innerHTML = html;
-        }
-        catch (error) {
-            console.error('Error al cargar juegos populares:', error);
-            container.innerHTML = `
+        html += juegos.map(j => renderizarJuegoRAWG(j)).join('');
+        container.innerHTML = html;
+    }
+    catch (error) {
+        console.error('Error al cargar juegos populares:', error);
+        container.innerHTML = `
             <div class="no-results">
                 <p>❌ Error al cargar juegos populares. Por favor intenta de nuevo.</p>
             </div>
         `;
-        }
-    });
+    }
 }
 function renderizarJuegoCheapShark(juego) {
     const precioMasBarato = parseFloat(juego.cheapest);
@@ -692,55 +676,52 @@ function renderizarJuegoCheapShark(juego) {
       </div>
     `;
 }
-function buscarPreciosEnCheapShark() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const nombre = document.getElementById('buscarPrecioCheapShark').value;
-        const container = document.getElementById('resultadoCheapShark');
-        if (!nombre) {
-            alert('Por favor ingresa el nombre de un juego');
-            return;
-        }
-        container.innerHTML = '<p style="text-align: center; padding: 20px;">💰 Buscando precios en CheapShark...</p>';
-        try {
-            const juegos = yield buscarJuegoPorNombre(nombre);
-            if (juegos.length === 0) {
-                container.innerHTML = `
+async function buscarPreciosEnCheapShark() {
+    const nombre = document.getElementById('buscarPrecioCheapShark').value;
+    const container = document.getElementById('resultadoCheapShark');
+    if (!nombre) {
+        alert('Por favor ingresa el nombre de un juego');
+        return;
+    }
+    container.innerHTML = '<p style="text-align: center; padding: 20px;">💰 Buscando precios en CheapShark...</p>';
+    try {
+        const juegos = await buscarJuegoPorNombre(nombre);
+        if (juegos.length === 0) {
+            container.innerHTML = `
                 <div class="no-results">
                     <p>❌ No se encontraron precios para "${nombre}"</p>
                 </div>
             `;
-                return;
-            }
-            let html = `
+            return;
+        }
+        let html = `
             <h3 style="color: #10b981; margin-bottom: 15px;">
                 💵 Precios encontrados para "${nombre}" (${juegos.length} resultados)
             </h3>
         `;
-            html += juegos.map(j => renderizarJuegoCheapShark(j)).join('');
-            container.innerHTML = html;
-        }
-        catch (error) {
-            console.error('Error al buscar en CheapShark:', error);
-            container.innerHTML = `
+        html += juegos.map(j => renderizarJuegoCheapShark(j)).join('');
+        container.innerHTML = html;
+    }
+    catch (error) {
+        console.error('Error al buscar en CheapShark:', error);
+        container.innerHTML = `
             <div class="no-results">
                 <p>❌ Error al buscar precios. Por favor intenta de nuevo.</p>
             </div>
         `;
-        }
-    });
+    }
 }
-function verDetallesOferta(gameID) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const container = document.getElementById('detallesOferta');
-        container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Cargando ofertas...</p>';
-        container.scrollIntoView({ behavior: 'smooth' });
-        try {
-            const detalles = yield obtenerDetallesJuego(gameID);
-            if (!detalles) {
-                container.innerHTML = '<div class="no-results">❌ No se pudieron cargar las ofertas</div>';
-                return;
-            }
-            let html = `
+async function verDetallesOferta(gameID) {
+    const container = document.getElementById('detallesOferta');
+    container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Cargando ofertas...</p>';
+    container.scrollIntoView({ behavior: 'smooth' });
+    try {
+        const detalles = await obtenerDetallesJuego(gameID);
+        if (!detalles) {
+            container.innerHTML = '<div class="no-results">❌ No se pudieron cargar las ofertas</div>';
+            return;
+        }
+        let html = `
             <div style="background: white; padding: 20px; border-radius: 10px; margin-top: 20px;">
                 <h3 style="color: #10b981; margin-bottom: 15px;">🎮 ${detalles.info.title}</h3>
                 <img src="${detalles.info.thumb}" style="max-width: 300px; border-radius: 8px; margin-bottom: 15px;">
@@ -751,10 +732,10 @@ function verDetallesOferta(gameID) {
                 <h4 style="color: #2d3748; margin-bottom: 10px;">Ofertas actuales:</h4>
                 <div style="display: grid; gap: 10px;">
         `;
-            detalles.deals.forEach(deal => {
-                const tienda = TIENDAS_CHEAPSHARK[deal.storeID] || `Tienda ${deal.storeID}`;
-                const ahorro = parseFloat(deal.savings).toFixed(0);
-                html += `
+        detalles.deals.forEach(deal => {
+            const tienda = TIENDAS_CHEAPSHARK[deal.storeID] || `Tienda ${deal.storeID}`;
+            const ahorro = parseFloat(deal.savings).toFixed(0);
+            html += `
                 <div style="background: #f7fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <div>
@@ -776,31 +757,29 @@ function verDetallesOferta(gameID) {
                     </div>
                 </div>
             `;
-            });
-            html += `</div></div>`;
-            container.innerHTML = html;
-        }
-        catch (error) {
-            console.error('Error al cargar detalles:', error);
-            container.innerHTML = '<div class="no-results">❌ Error al cargar ofertas</div>';
-        }
-    });
+        });
+        html += `</div></div>`;
+        container.innerHTML = html;
+    }
+    catch (error) {
+        console.error('Error al cargar detalles:', error);
+        container.innerHTML = '<div class="no-results">❌ Error al cargar ofertas</div>';
+    }
 }
-function mostrarMejoresOfertas() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const container = document.getElementById('mejoresOfertas');
-        container.innerHTML = '<p style="text-align: center; padding: 20px;">🔥 Cargando mejores ofertas...</p>';
-        try {
-            const ofertas = yield obtenerMejoresOfertas(15);
-            if (ofertas.length === 0) {
-                container.innerHTML = '<div class="no-results">❌ No se pudieron cargar las ofertas</div>';
-                return;
-            }
-            let html = '<h3 style="color: #10b981; margin-bottom: 15px;">🔥 Top Ofertas del Momento</h3>';
-            ofertas.forEach(oferta => {
-                const tienda = TIENDAS_CHEAPSHARK[oferta.storeID] || `Tienda ${oferta.storeID}`;
-                const ahorro = parseFloat(oferta.savings).toFixed(0);
-                html += `
+async function mostrarMejoresOfertas() {
+    const container = document.getElementById('mejoresOfertas');
+    container.innerHTML = '<p style="text-align: center; padding: 20px;">🔥 Cargando mejores ofertas...</p>';
+    try {
+        const ofertas = await obtenerMejoresOfertas(15);
+        if (ofertas.length === 0) {
+            container.innerHTML = '<div class="no-results">❌ No se pudieron cargar las ofertas</div>';
+            return;
+        }
+        let html = '<h3 style="color: #10b981; margin-bottom: 15px;">🔥 Top Ofertas del Momento</h3>';
+        ofertas.forEach(oferta => {
+            const tienda = TIENDAS_CHEAPSHARK[oferta.storeID] || `Tienda ${oferta.storeID}`;
+            const ahorro = parseFloat(oferta.savings).toFixed(0);
+            html += `
                 <div class="game-card" style="border-left-color: #f59e0b;">
                     <div style="display: flex; gap: 15px; align-items: start; flex-wrap: wrap;">
                         <img src="${oferta.thumb}" style="width: 150px; height: 70px; object-fit: cover; border-radius: 8px;">
@@ -826,14 +805,13 @@ function mostrarMejoresOfertas() {
                     </div>
                 </div>
             `;
-            });
-            container.innerHTML = html;
-        }
-        catch (error) {
-            console.error('Error:', error);
-            container.innerHTML = '<div class="no-results">❌ Error al cargar ofertas</div>';
-        }
-    });
+        });
+        container.innerHTML = html;
+    }
+    catch (error) {
+        console.error('Error:', error);
+        container.innerHTML = '<div class="no-results">❌ Error al cargar ofertas</div>';
+    }
 }
 // ================== EXPONER FUNCIONES AL HTML ==================
 window.iniciarSesion = iniciarSesion;
@@ -863,3 +841,4 @@ window.mostrarJuegosPopularesRAWG = mostrarJuegosPopularesRAWG;
 window.buscarPreciosEnCheapShark = buscarPreciosEnCheapShark;
 window.verDetallesOferta = verDetallesOferta;
 window.mostrarMejoresOfertas = mostrarMejoresOfertas;
+//# sourceMappingURL=Script.js.map

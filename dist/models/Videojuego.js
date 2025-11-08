@@ -56,3 +56,4 @@ export class Videojuego {
         `);
     }
 }
+//# sourceMappingURL=Videojuego.js.map

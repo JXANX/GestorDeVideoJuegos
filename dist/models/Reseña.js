@@ -39,3 +39,4 @@ export class Reseña {
         `);
     }
 }
+//# sourceMappingURL=Rese%C3%B1a.js.map

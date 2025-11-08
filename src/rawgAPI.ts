@@ -1,4 +1,28 @@
-import axios from "axios";
+// rawgAPI.ts - Versión sin import axios (usa el global del CDN)
+
+// Declarar axios como variable global con su interfaz completa
+interface AxiosResponse<T = any> {
+  data: T;
+  status: number;
+  statusText: string;
+  headers: any;
+  config: any;
+}
+
+interface AxiosRequestConfig {
+  params?: any;
+  headers?: any;
+  [key: string]: any;
+}
+
+interface AxiosInstance {
+  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
+  post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
+  put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
+  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
+}
+
+declare const axios: AxiosInstance;
 
 const API_URL = "https://api.rawg.io/api";
 const API_KEY = "1724bff304ea4659b952fddb50e807de";
@@ -28,11 +52,8 @@ interface RespuestaRAWG {
 
 export type { JuegoRAWG, RespuestaRAWG };
 
-
-
 /**
  * Obtiene los juegos más populares (mejor valorados)
- * @returns Promise con array de juegos
  */
 export async function obtenerJuegosPopulares(): Promise<JuegoRAWG[]> {
   try {
@@ -40,7 +61,7 @@ export async function obtenerJuegosPopulares(): Promise<JuegoRAWG[]> {
       params: {
         key: API_KEY,
         ordering: "-rating",
-        page_size: 20 // Aumentado a 20 para más resultados
+        page_size: 20
       }
     });
     console.log("Juegos populares obtenidos:", response.data.results.length);
@@ -53,8 +74,6 @@ export async function obtenerJuegosPopulares(): Promise<JuegoRAWG[]> {
 
 /**
  * Busca juegos por nombre
- * @param nombre - Nombre del juego a buscar
- * @returns Promise con array de juegos encontrados
  */
 export async function buscarJuego(nombre: string): Promise<JuegoRAWG[]> {
   try {
@@ -80,8 +99,6 @@ export async function buscarJuego(nombre: string): Promise<JuegoRAWG[]> {
 
 /**
  * Busca juegos por género
- * @param genero - Género a buscar (ej: "action", "rpg", "adventure")
- * @returns Promise con array de juegos del género especificado
  */
 export async function buscarJuegoPorGenero(genero: string): Promise<JuegoRAWG[]> {
   try {
@@ -108,8 +125,6 @@ export async function buscarJuegoPorGenero(genero: string): Promise<JuegoRAWG[]>
 
 /**
  * Busca juegos por plataforma
- * @param plataforma - ID o slug de la plataforma (ej: "4" para PC, "187" para PS5)
- * @returns Promise con array de juegos de la plataforma
  */
 export async function buscarJuegoPorPlataforma(plataforma: string): Promise<JuegoRAWG[]> {
   try {
@@ -136,13 +151,12 @@ export async function buscarJuegoPorPlataforma(plataforma: string): Promise<Jueg
 
 /**
  * Obtiene juegos nuevos/recientes
- * @returns Promise con array de juegos recientes
  */
 export async function obtenerJuegosRecientes(): Promise<JuegoRAWG[]> {
   try {
     const fechaActual = new Date();
     const hace30Dias = new Date(fechaActual.setDate(fechaActual.getDate() - 30));
-    const fechaFormato = hace30Dias.toISOString().split('T')[0]; // YYYY-MM-DD
+    const fechaFormato = hace30Dias.toISOString().split('T')[0];
 
     const response = await axios.get<RespuestaRAWG>(`${API_URL}/games`, {
       params: {
@@ -162,8 +176,6 @@ export async function obtenerJuegosRecientes(): Promise<JuegoRAWG[]> {
 
 /**
  * Busca juegos con filtros múltiples
- * @param filtros - Objeto con filtros opcionales
- * @returns Promise con array de juegos filtrados
  */
 export async function buscarJuegosConFiltros(filtros: {
   genero?: string;
@@ -197,7 +209,6 @@ export async function buscarJuegosConFiltros(filtros: {
 }
 
 // ================== GÉNEROS COMUNES EN RAWG ==================
-
 export const GENEROS_RAWG = [
   "action",
   "adventure", 
@@ -220,7 +231,6 @@ export const GENEROS_RAWG = [
 ] as const;
 
 // ================== IDS DE LAS PLATAFORMAS COMUNES ==================
-
 export const PLATAFORMAS_RAWG = {
   PC: "4",
   PlayStation5: "187",

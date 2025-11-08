@@ -5,17 +5,22 @@
     "outDir": "./dist",
 
     // Environment Settings
-    "target": "ES6",
-    "module": "ES2020",         // 👈 usa módulos de navegador
-    "moduleResolution": "node", // 👈 resuelve imports estilo Node (recomendado)
-
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM"],
     
+    // Permite imports sin extensión
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    
+    // Interoperabilidad
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-
+    "isolatedModules": true,
 
     // Other Outputs
-    "sourceMap": false,
+    "sourceMap": true,
     "declaration": false,
     "declarationMap": false,
 
@@ -25,6 +30,9 @@
 
     // Recommended Options
     "strict": true,
-    "skipLibCheck": true
-  }
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

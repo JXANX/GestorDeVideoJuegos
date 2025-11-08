@@ -32,3 +32,4 @@ export class VideojuegoBeta extends Videojuego {
         `);
     }
 }
+//# sourceMappingURL=VideoJuegoBeta.js.map
