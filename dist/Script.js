@@ -16,30 +16,40 @@ let listaVideojuegosBeta = datosIniciales.videojuegosBeta;
 let listaReseñas = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
-// ================== PROTECCIÓN DE PÁGINAS - CORREGIDO (anti-bucle) ==================
-const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
+// ================== PROTECCIÓN DE PÁGINAS - DEFINITIVO ==================
+const rutaActual = window.location.pathname;
+const paginaActual = rutaActual.split('/').pop() || 'index.html';
+// Normalizamos los nombres de archivo
+const nombrePagina = paginaActual.toLowerCase();
 const paginasPublicas = ['login.html', 'registro.html'];
-// Verificar si la página es pública
-const esPaginaPublica = paginasPublicas.some(pagina => paginaActual.includes(pagina));
+// Detectar si la página actual es pública
+const esPaginaPublica = paginasPublicas.includes(nombrePagina);
+// Revisar sesión activa
 const usuarioLogueado = hayUsuarioLogueado();
-if (usuarioLogueado && paginaActual === 'login.html') {
-    // 🔁 Si el usuario ya tiene sesión y abre el login → lo mandamos al home
+// URL absolutas para redirigir (importante para evitar bucles relativos)
+const urlLogin = `${window.location.origin}/login.html`;
+const urlHome = `${window.location.origin}/index.html`;
+// 🧠 Lógica principal sin bucles:
+if (usuarioLogueado && nombrePagina === 'login.html') {
     console.log('➡️ Ya hay sesión activa. Redirigiendo al inicio...');
-    window.location.replace('index.html');
+    if (window.location.href !== urlHome) {
+        window.location.replace(urlHome);
+    }
 }
 else if (!usuarioLogueado && !esPaginaPublica) {
-    // 🚫 Si no hay sesión y está intentando entrar a una página privada → login
     console.log('⚠️ No hay sesión activa, redirigiendo al login...');
-    window.location.replace('login.html');
+    if (window.location.href !== urlLogin) {
+        window.location.replace(urlLogin);
+    }
 }
 else {
-    // ✅ Caso normal: permitir acceso
+    // ✅ Permitir acceso
     if (usuarioLogueado) {
         const sesion = obtenerSesion();
         console.log('✅ Usuario logueado:', sesion?.nombre);
     }
     else {
-        console.log('📄 Página pública detectada:', paginaActual);
+        console.log('📄 Página pública detectada:', nombrePagina);
     }
 }
 // ================== FUNCIONES DE AUTENTICACIÓN ==================
