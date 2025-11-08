@@ -36,32 +36,31 @@ let listaReseñas: Reseña[] = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
 
-// ================== INICIALIZAR GUARDIA DE SESIÓN ==================
-// El sessionGuard ya se inicializa automáticamente, pero podemos forzarlo si es necesario
-if (typeof inicializarGuardiaDeSesion === 'function') {
-    console.log('🔐 Sistema de protección de sesión activo');
-}
-
 // ================== PROTECCIÓN DE PÁGINAS ==================
 // Verificar si el usuario está logueado (excepto en login.html y registro.html)
 const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
 const paginasPublicas = ['login.html', 'registro.html'];
 const requiereAuth = !paginasPublicas.some(p => paginaActual.includes(p));
 
+// ================== INICIALIZAR GUARDIA DE SESIÓN ==================
+// Solo inicializar el guardia en páginas que requieren autenticación
 if (requiereAuth) {
-    if (!hayUsuarioLogueado()) {
-        console.log('⚠️ No hay sesión activa, redirigiendo al login...');
-        window.location.replace('login.html');
-    } else {
-        const sesion = obtenerSesion();
-        console.log('✅ Usuario logueado:', sesion?.nombre);
+    console.log('🔐 Inicializando sistema de protección...');
+    inicializarGuardiaDeSesion();
+    
+    // Verificar si hay sesión activa
+    const sesion = obtenerSesion();
+    if (sesion) {
+        console.log('✅ Usuario logueado:', sesion.nombre);
         
         // Mostrar nombre de usuario en la interfaz si existe el elemento
         const userNameElement = document.getElementById('userName');
-        if (userNameElement && sesion) {
+        if (userNameElement) {
             userNameElement.textContent = sesion.nombre;
         }
     }
+} else {
+    console.log('📄 Página pública, no se requiere autenticación');
 }
 
 // ================== FUNCIONES DE AUTENTICACIÓN ==================

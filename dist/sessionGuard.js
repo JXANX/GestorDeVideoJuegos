@@ -151,17 +151,24 @@ function detectarMultiplesSesiones() {
         // Si se cierra sesión en otra pestaña
         if (event.key === KEYS.SESION_ACTIVA && event.newValue === null) {
             console.warn('⚠️ Sesión cerrada en otra pestaña');
-            window.location.replace('login.html');
+            if (requiereAutenticacion()) {
+                window.location.replace('login.html');
+            }
         }
     });
 }
-// ==================== INICIALIZACIÓN AUTOMÁTICA ====================
+// ==================== INICIALIZACIÓN MANUAL ====================
 /**
  * Inicializa el sistema de protección de sesión
- * Se ejecuta automáticamente al cargar el script
+ * DEBE SER LLAMADA MANUALMENTE desde Script.ts
  */
 export function inicializarGuardiaDeSesion() {
     console.log('🔒 Inicializando guardia de sesión...');
+    // Solo activar protección si NO estamos en páginas públicas
+    if (!requiereAutenticacion()) {
+        console.log('📄 Página pública detectada, no se activa protección');
+        return;
+    }
     // 1. Verificar sesión inmediatamente
     verificarSesionYRedirigir();
     // 2. Prevenir navegación hacia atrás
@@ -172,12 +179,8 @@ export function inicializarGuardiaDeSesion() {
     detectarMultiplesSesiones();
     console.log('✅ Guardia de sesión activa');
 }
-// ==================== AUTO-EJECUCIÓN ====================
-// Se ejecuta automáticamente cuando se carga el módulo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarGuardiaDeSesion);
-}
-else {
-    inicializarGuardiaDeSesion();
-}
+// ==================== NO HAY AUTO-EJECUCIÓN ====================
+// El módulo ya NO se ejecuta automáticamente
+// Debe ser inicializado manualmente llamando a inicializarGuardiaDeSesion()
+console.log('📦 Módulo sessionGuard cargado (esperando inicialización manual)');
 //# sourceMappingURL=sessionGuard.js.map
