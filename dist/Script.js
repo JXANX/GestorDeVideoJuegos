@@ -7,8 +7,14 @@ import { obtenerJuegosPopulares } from "./rawgAPI.js";
 import { inicializarDatosDefault, guardarUsuarios, guardarVideojuegos, guardarVideojuegosBeta, guardarReseñas, debugearEstado } from "./localStorage.js";
 // ================== IMPORTAR SESSION GUARD ==================
 import { guardarSesion, obtenerSesion, cerrarSesion as cerrarSesionGuard, inicializarGuardiaDeSesion } from "./sessionGuard.js";
-// ================== INICIALIZAR DATOS CON LOCALSTORAGE ==================
+// ================== DETECTAR PÁGINA ACTUAL ==================
+const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
+const paginasPublicas = ['login.html', 'registro.html'];
+const esPaginaPublica = paginasPublicas.some(p => paginaActual.includes(p));
 console.log('🚀 Iniciando aplicación...');
+console.log('📄 Página actual:', paginaActual);
+console.log('🔓 Es página pública:', esPaginaPublica);
+// ================== INICIALIZAR DATOS CON LOCALSTORAGE ==================
 const datosIniciales = inicializarDatosDefault();
 let listaUsuarios = datosIniciales.usuarios;
 let listaVideojuegos = datosIniciales.videojuegos;
@@ -16,14 +22,9 @@ let listaVideojuegosBeta = datosIniciales.videojuegosBeta;
 let listaReseñas = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
-// ================== PROTECCIÓN DE PÁGINAS ==================
-// Verificar si el usuario está logueado (excepto en login.html y registro.html)
-const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
-const paginasPublicas = ['login.html', 'registro.html'];
-const requiereAuth = !paginasPublicas.some(p => paginaActual.includes(p));
 // ================== INICIALIZAR GUARDIA DE SESIÓN ==================
 // Solo inicializar el guardia en páginas que requieren autenticación
-if (requiereAuth) {
+if (!esPaginaPublica) {
     console.log('🔐 Inicializando sistema de protección...');
     inicializarGuardiaDeSesion();
     // Verificar si hay sesión activa
@@ -38,7 +39,7 @@ if (requiereAuth) {
     }
 }
 else {
-    console.log('📄 Página pública, no se requiere autenticación');
+    console.log('📄 Página pública detectada, sistema de protección desactivado');
 }
 // ================== FUNCIONES DE AUTENTICACIÓN ==================
 function iniciarSesion(event) {
