@@ -5,7 +5,7 @@ import { VideojuegoBeta } from "./models/VideoJuegoBeta.js";
 import { obtenerJuegosPopulares } from "./rawgAPI.js";
 // ================== IMPORTAR LOCALSTORAGE ==================
 import { inicializarDatosDefault, guardarUsuarios, guardarVideojuegos, guardarVideojuegosBeta, guardarReseñas, debugearEstado } from "./localStorage.js";
-// ================== IMPORTAR SOLO LAS FUNCIONES BÁSICAS DE SESSION ==================
+// ================== IMPORTAR FUNCIONES DE SESSION ==================
 import { guardarSesion, obtenerSesion, cerrarSesion as cerrarSesionGuard, hayUsuarioLogueado } from "./sessionGuard.js";
 // ================== INICIALIZAR DATOS CON LOCALSTORAGE ==================
 console.log('🚀 Iniciando aplicación...');
@@ -16,25 +16,35 @@ let listaVideojuegosBeta = datosIniciales.videojuegosBeta;
 let listaReseñas = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
-// ================== PROTECCIÓN SIMPLE DE PÁGINAS ==================
+// ================== PROTECCIÓN DE PÁGINAS - CORREGIDO ==================
 const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
-const esPaginaLogin = paginaActual.includes('login.html') || paginaActual.includes('registro.html');
-// Solo verificar sesión si NO estamos en login/registro
-if (!esPaginaLogin) {
+const paginasPublicas = ['login.html', 'registro.html'];
+// Solo verificar sesión si NO estamos en páginas públicas
+const esPaginaPublica = paginasPublicas.some(pagina => paginaActual.includes(pagina));
+if (!esPaginaPublica) {
     if (!hayUsuarioLogueado()) {
         console.log('⚠️ No hay sesión activa, redirigiendo al login...');
-        window.location.href = 'login.html';
+        window.location.replace('login.html');
     }
     else {
         const sesion = obtenerSesion();
         console.log('✅ Usuario logueado:', sesion?.nombre);
     }
 }
+else {
+    console.log('📄 Página pública detectada:', paginaActual);
+}
 // ================== FUNCIONES DE AUTENTICACIÓN ==================
 function iniciarSesion(event) {
     event.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+    const emailInput = document.getElementById('loginEmail');
+    const passwordInput = document.getElementById('loginPassword');
+    if (!emailInput || !passwordInput) {
+        console.error('❌ Elementos del formulario no encontrados');
+        return false;
+    }
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
     console.log('🔍 Intento de login:', email);
     console.log('📋 Usuarios disponibles:', listaUsuarios.length);
     // Buscar usuario activo con ese correo
@@ -58,14 +68,14 @@ function iniciarSesion(event) {
     if (typeof usuario.iniciarSesion !== 'function') {
         console.error('❌ ERROR CRÍTICO: El usuario no tiene el método iniciarSesion');
         console.log('Usuario defectuoso:', usuario);
-        alert('Error en la aplicación. Por favor, limpia el caché y recarga.');
+        alert('Error en la aplicación. Por favor, limpia el caché del navegador (Ctrl+Shift+Delete) y recarga.');
         return false;
     }
     // Intentar iniciar sesión
     const loginExitoso = usuario.iniciarSesion(email, password);
     if (loginExitoso) {
         console.log('✅ Login exitoso');
-        // 🔥 GUARDAR SESIÓN CON SESSION GUARD
+        // Guardar sesión
         guardarSesion(usuario);
         const successDiv = document.getElementById('successMessage');
         if (successDiv) {
@@ -73,7 +83,7 @@ function iniciarSesion(event) {
             successDiv.style.display = 'block';
         }
         setTimeout(() => {
-            window.location.replace('index.html'); // Usar replace para evitar volver atrás
+            window.location.replace('index.html');
         }, 1000);
         return false;
     }
@@ -90,12 +100,37 @@ function iniciarSesion(event) {
 }
 function registrarUsuario(event) {
     event.preventDefault();
-    const id = parseInt(document.getElementById('regId').value);
-    const nombre = document.getElementById('regNombre').value;
-    const email = document.getElementById('regEmail').value;
-    const password = document.getElementById('regPassword').value;
+    const idInput = document.getElementById('regId');
+    const nombreInput = document.getElementById('regNombre');
+    const emailInput = document.getElementById('regEmail');
+    const passwordInput = document.getElementById('regPassword');
+    if (!idInput || !nombreInput || !emailInput || !passwordInput) {
+        console.error('❌ Elementos del formulario no encontrados');
+        return false;
+    }
+    const id = parseInt(idInput.value);
+    const nombre = nombreInput.value.trim();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
     const errorDiv = document.getElementById('errorMessage');
     const successDiv = document.getElementById('successMessage');
+    // Validaciones
+    if (isNaN(id) || id <= 0) {
+        if (errorDiv) {
+            errorDiv.textContent = 'El ID debe ser un número positivo';
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 4000);
+        }
+        return false;
+    }
+    if (!nombre || !email || !password) {
+        if (errorDiv) {
+            errorDiv.textContent = 'Todos los campos son obligatorios';
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 4000);
+        }
+        return false;
+    }
     // Verificar si el ID o email ya existen
     if (listaUsuarios.some(u => u.getIdUsuario() === id)) {
         if (errorDiv) {
@@ -116,7 +151,7 @@ function registrarUsuario(event) {
     // Crear nuevo usuario
     const nuevoUsuario = new Usuario(id, nombre, email, password, true);
     listaUsuarios.push(nuevoUsuario);
-    // 🔥 GUARDAR EN LOCALSTORAGE
+    // Guardar en LocalStorage
     guardarUsuarios(listaUsuarios);
     if (successDiv) {
         successDiv.textContent = '¡Usuario registrado exitosamente! Ya puedes iniciar sesión';
@@ -124,10 +159,10 @@ function registrarUsuario(event) {
         setTimeout(() => successDiv.style.display = 'none', 4000);
     }
     // Limpiar formulario
-    document.getElementById('regId').value = '';
-    document.getElementById('regNombre').value = '';
-    document.getElementById('regEmail').value = '';
-    document.getElementById('regPassword').value = '';
+    idInput.value = '';
+    nombreInput.value = '';
+    emailInput.value = '';
+    passwordInput.value = '';
     // Cerrar el formulario de registro
     const registerSection = document.getElementById('registerSection');
     const toggleBtn = document.getElementById('toggleBtn');
@@ -139,16 +174,18 @@ function registrarUsuario(event) {
 }
 function cerrarSesion() {
     console.log('🚪 Cerrando sesión...');
-    // 🔥 CERRAR SESIÓN CON SESSION GUARD
+    // Cerrar sesión
     cerrarSesionGuard();
-    // Redirigir al login usando replace para evitar volver atrás
+    // Redirigir al login
     window.location.replace('login.html');
 }
 // ================== INTERFAZ - VIDEOJUEGOS ==================
 function mostrarJuegos(juegos, contenedorId) {
     const contenedor = document.getElementById(contenedorId);
-    if (!contenedor)
+    if (!contenedor) {
+        console.warn(`⚠️ Contenedor ${contenedorId} no encontrado`);
         return;
+    }
     if (!juegos || juegos.length === 0) {
         contenedor.innerHTML = '<div class="no-results">No se encontraron juegos.</div>';
         return;
@@ -173,8 +210,10 @@ function mostrarJuegos(juegos, contenedorId) {
 // ================== INTERFAZ - VIDEOJUEGOS BETA ==================
 function mostrarJuegosBeta(juegos, contenedorId) {
     const contenedor = document.getElementById(contenedorId);
-    if (!contenedor)
+    if (!contenedor) {
+        console.warn(`⚠️ Contenedor ${contenedorId} no encontrado`);
         return;
+    }
     if (!juegos || juegos.length === 0) {
         contenedor.innerHTML = '<div class="no-results">No se encontraron juegos beta.</div>';
         return;
@@ -210,8 +249,10 @@ function mostrarJuegosBeta(juegos, contenedorId) {
 // ================== INTERFAZ - RESEÑAS ==================
 function mostrarReseñas(reseñas, contenedorId) {
     const contenedor = document.getElementById(contenedorId);
-    if (!contenedor)
+    if (!contenedor) {
+        console.warn(`⚠️ Contenedor ${contenedorId} no encontrado`);
         return;
+    }
     if (!reseñas || reseñas.length === 0) {
         contenedor.innerHTML = '<div class="no-results">No se encontraron reseñas.</div>';
         return;
@@ -269,13 +310,6 @@ function agregarReseña(nuevaReseña) {
     listaReseñas.push(nuevaReseña);
     guardarReseñas(listaReseñas);
 }
-function actualizarReseña(id, datosActualizados) {
-    const r = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
-    if (r) {
-        Object.assign(r, datosActualizados);
-        guardarReseñas(listaReseñas);
-    }
-}
 function eliminarReseña(id) {
     const r = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
     if (r) {
@@ -288,179 +322,381 @@ function mostrarTodosLosJuegos() {
     mostrarJuegos(obtenerAllVideojuegos(), "todosJuegos");
 }
 function agregarNuevoJuego() {
-    const Id = parseInt(document.getElementById('nuevoId').value);
-    const título = document.getElementById('nuevoTitulo').value;
-    const genero = document.getElementById('nuevoGenero').value;
-    const desarrollador = document.getElementById('nuevoDesarrollador').value;
-    const añoLanzamiento = parseInt(document.getElementById('nuevoAño').value);
-    const plataforma = document.getElementById('nuevaPlataforma').value;
-    const descripcion = document.getElementById('nuevaDescripcion').value;
-    const precio = parseInt(document.getElementById('nuevoPrecio').value);
-    const estado = document.getElementById('nuevoEstado').value;
-    const rating = parseFloat(document.getElementById('nuevoRating').value);
+    const idInput = document.getElementById('nuevoId');
+    const tituloInput = document.getElementById('nuevoTitulo');
+    const generoInput = document.getElementById('nuevoGenero');
+    const desarrolladorInput = document.getElementById('nuevoDesarrollador');
+    const añoInput = document.getElementById('nuevoAño');
+    const plataformaInput = document.getElementById('nuevaPlataforma');
+    const descripcionInput = document.getElementById('nuevaDescripcion');
+    const precioInput = document.getElementById('nuevoPrecio');
+    const estadoInput = document.getElementById('nuevoEstado');
+    const ratingInput = document.getElementById('nuevoRating');
+    if (!idInput || !tituloInput || !generoInput || !desarrolladorInput ||
+        !añoInput || !plataformaInput || !descripcionInput || !precioInput ||
+        !estadoInput || !ratingInput) {
+        alert('Error: Faltan campos del formulario');
+        return;
+    }
+    const Id = parseInt(idInput.value);
+    const título = tituloInput.value.trim();
+    const genero = generoInput.value.trim();
+    const desarrollador = desarrolladorInput.value.trim();
+    const añoLanzamiento = parseInt(añoInput.value);
+    const plataforma = plataformaInput.value.trim();
+    const descripcion = descripcionInput.value.trim();
+    const precio = parseInt(precioInput.value);
+    const estado = estadoInput.value;
+    const rating = parseFloat(ratingInput.value);
+    // Validaciones
+    if (isNaN(Id) || !título || !genero || !desarrollador || isNaN(añoLanzamiento) ||
+        !plataforma || !descripcion || isNaN(precio) || isNaN(rating)) {
+        alert('Por favor completa todos los campos correctamente');
+        return;
+    }
+    if (listaVideojuegos.some(j => j.getId() === Id)) {
+        alert('Ya existe un juego con ese ID');
+        return;
+    }
     const nuevoJuego = new Videojuego(Id, título, genero, desarrollador, añoLanzamiento, plataforma, descripcion, precio, estado, rating, true);
     agregarVideojuego(nuevoJuego);
     alert("Juego agregado y guardado en LocalStorage!");
+    // Limpiar campos
+    idInput.value = '';
+    tituloInput.value = '';
+    generoInput.value = '';
+    desarrolladorInput.value = '';
+    añoInput.value = '';
+    plataformaInput.value = '';
+    descripcionInput.value = '';
+    precioInput.value = '';
+    ratingInput.value = '';
 }
 function buscarPorId() {
-    const id = parseInt(document.getElementById('buscarId').value);
+    const idInput = document.getElementById('buscarId');
+    if (!idInput)
+        return;
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        const contenedor = document.getElementById("resultadoBusqueda");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>Por favor ingresa un ID válido</div>";
+        }
+        return;
+    }
     const juego = obtenerVideojuegoPorID(id);
     if (juego) {
         mostrarJuegos([juego], "resultadoBusqueda");
     }
     else {
-        document.getElementById("resultadoBusqueda").innerHTML = "<div class='no-results'>No se encontró el juego</div>";
+        const contenedor = document.getElementById("resultadoBusqueda");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró el juego</div>";
+        }
     }
 }
 function buscarPorGenero() {
-    const genero = document.getElementById('buscarGenero').value.toLowerCase();
+    const generoInput = document.getElementById('buscarGenero');
+    if (!generoInput)
+        return;
+    const genero = generoInput.value.toLowerCase().trim();
+    if (!genero) {
+        alert('Por favor ingresa un género');
+        return;
+    }
     const juegos = listaVideojuegos.filter(j => j.getGenero().toLowerCase().includes(genero) && j.getActivo());
     mostrarJuegos(juegos, "resultadoGenero");
 }
 function actualizarJuego() {
-    const id = parseInt(document.getElementById('actualizarId').value);
+    const idInput = document.getElementById('actualizarId');
+    if (!idInput)
+        return;
+    const id = parseInt(idInput.value);
     const juego = listaVideojuegos.find(j => j.getId() === id && j.getActivo());
     if (juego) {
-        const titulo = document.getElementById('actualizarTitulo').value;
-        if (titulo)
-            juego.setTítulo(titulo);
-        const genero = document.getElementById('actualizarGenero').value;
-        if (genero)
-            juego.setGenero(genero);
-        const desarrollador = document.getElementById('actualizarDesarrollador').value;
-        if (desarrollador)
-            juego.setDesarrollador(desarrollador);
-        const precio = document.getElementById('actualizarPrecio').value;
-        if (precio)
-            juego.setPrecio(parseInt(precio));
-        const rating = document.getElementById('actualizarRating').value;
-        if (rating)
-            juego.setRating(parseFloat(rating));
+        const tituloInput = document.getElementById('actualizarTitulo');
+        const generoInput = document.getElementById('actualizarGenero');
+        const desarrolladorInput = document.getElementById('actualizarDesarrollador');
+        const precioInput = document.getElementById('actualizarPrecio');
+        const ratingInput = document.getElementById('actualizarRating');
+        if (tituloInput && tituloInput.value)
+            juego.setTítulo(tituloInput.value);
+        if (generoInput && generoInput.value)
+            juego.setGenero(generoInput.value);
+        if (desarrolladorInput && desarrolladorInput.value)
+            juego.setDesarrollador(desarrolladorInput.value);
+        if (precioInput && precioInput.value)
+            juego.setPrecio(parseInt(precioInput.value));
+        if (ratingInput && ratingInput.value)
+            juego.setRating(parseFloat(ratingInput.value));
         guardarVideojuegos(listaVideojuegos);
         mostrarJuegos([juego], "resultadoActualizacion");
         alert("Juego actualizado y guardado!");
     }
     else {
-        document.getElementById("resultadoActualizacion").innerHTML = "<div class='no-results'>No se encontró el videojuego con ese ID</div>";
+        const contenedor = document.getElementById("resultadoActualizacion");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró el videojuego con ese ID</div>";
+        }
     }
 }
 function eliminarJuego() {
-    const id = parseInt(document.getElementById('eliminarId').value);
-    eliminarVideojuego(id);
-    alert("Juego eliminado!");
+    const idInput = document.getElementById('eliminarId');
+    if (!idInput)
+        return;
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        alert('Por favor ingresa un ID válido');
+        return;
+    }
+    const juego = obtenerVideojuegoPorID(id);
+    if (!juego) {
+        alert('No se encontró el juego con ese ID');
+        return;
+    }
+    if (confirm(`¿Estás seguro de eliminar "${juego.getTítulo()}"?`)) {
+        eliminarVideojuego(id);
+        alert("Juego eliminado!");
+        idInput.value = '';
+    }
 }
 // ================== FUNCIONES VINCULADAS A BOTONES - VIDEOJUEGOS BETA ==================
 function mostrarTodosLosJuegosBeta() {
     mostrarJuegosBeta(obtenerAllVideojuegosBeta(), "todosJuegosBeta");
 }
 function agregarNuevoJuegoBeta() {
-    const Id = parseInt(document.getElementById('nuevoBetaId').value);
-    const título = document.getElementById('nuevoBetaTitulo').value;
-    const genero = document.getElementById('nuevoBetaGenero').value;
-    const desarrollador = document.getElementById('nuevoBetaDesarrollador').value;
-    const añoLanzamiento = parseInt(document.getElementById('nuevoBetaAño').value);
-    const plataforma = document.getElementById('nuevoBetaPlataforma').value;
-    const descripcion = document.getElementById('nuevoBetaDescripcion').value;
-    const rating = parseFloat(document.getElementById('nuevoBetaRating').value);
-    const fechaAcceso = document.getElementById('nuevoBetaFecha').value;
-    const version = document.getElementById('nuevoBetaVersion').value;
+    const idInput = document.getElementById('nuevoBetaId');
+    const tituloInput = document.getElementById('nuevoBetaTitulo');
+    const generoInput = document.getElementById('nuevoBetaGenero');
+    const desarrolladorInput = document.getElementById('nuevoBetaDesarrollador');
+    const añoInput = document.getElementById('nuevoBetaAño');
+    const plataformaInput = document.getElementById('nuevoBetaPlataforma');
+    const descripcionInput = document.getElementById('nuevoBetaDescripcion');
+    const ratingInput = document.getElementById('nuevoBetaRating');
+    const fechaInput = document.getElementById('nuevoBetaFecha');
+    const versionInput = document.getElementById('nuevoBetaVersion');
+    if (!idInput || !tituloInput || !generoInput || !desarrolladorInput ||
+        !añoInput || !plataformaInput || !descripcionInput || !ratingInput ||
+        !fechaInput || !versionInput) {
+        alert('Error: Faltan campos del formulario');
+        return;
+    }
+    const Id = parseInt(idInput.value);
+    const título = tituloInput.value.trim();
+    const genero = generoInput.value.trim();
+    const desarrollador = desarrolladorInput.value.trim();
+    const añoLanzamiento = parseInt(añoInput.value);
+    const plataforma = plataformaInput.value.trim();
+    const descripcion = descripcionInput.value.trim();
+    const rating = parseFloat(ratingInput.value);
+    const fechaAcceso = fechaInput.value.trim();
+    const version = versionInput.value.trim();
+    if (isNaN(Id) || !título || !genero || !desarrollador || isNaN(añoLanzamiento) ||
+        !plataforma || !descripcion || isNaN(rating) || !fechaAcceso || !version) {
+        alert('Por favor completa todos los campos correctamente');
+        return;
+    }
+    if (listaVideojuegosBeta.some(j => j.getId() === Id)) {
+        alert('Ya existe un juego beta con ese ID');
+        return;
+    }
     const nuevoJuegoBeta = new VideojuegoBeta(Id, título, genero, desarrollador, añoLanzamiento, plataforma, descripcion, 0, "Beta", rating, true, fechaAcceso, version);
     agregarVideojuegoBeta(nuevoJuegoBeta);
     alert("Juego Beta agregado y guardado!");
+    // Limpiar campos
+    idInput.value = '';
+    tituloInput.value = '';
+    generoInput.value = '';
+    desarrolladorInput.value = '';
+    añoInput.value = '';
+    plataformaInput.value = '';
+    descripcionInput.value = '';
+    ratingInput.value = '';
+    fechaInput.value = '';
+    versionInput.value = '';
 }
 function buscarBetaPorId() {
-    const id = parseInt(document.getElementById('buscarBetaId').value);
+    const idInput = document.getElementById('buscarBetaId');
+    if (!idInput)
+        return;
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        const contenedor = document.getElementById("resultadoBusquedaBeta");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>Por favor ingresa un ID válido</div>";
+        }
+        return;
+    }
     const juego = obtenerVideojuegoBetaPorID(id);
     if (juego) {
         mostrarJuegosBeta([juego], "resultadoBusquedaBeta");
     }
     else {
-        document.getElementById("resultadoBusquedaBeta").innerHTML = "<div class='no-results'>No se encontró el juego beta</div>";
+        const contenedor = document.getElementById("resultadoBusquedaBeta");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró el juego beta</div>";
+        }
     }
 }
 function agregarFeedbackBeta() {
-    const id = parseInt(document.getElementById('feedbackBetaId').value);
-    const feedback = document.getElementById('feedbackTexto').value;
+    const idInput = document.getElementById('feedbackBetaId');
+    const feedbackInput = document.getElementById('feedbackTexto');
+    if (!idInput || !feedbackInput)
+        return;
+    const id = parseInt(idInput.value);
+    const feedback = feedbackInput.value.trim();
+    if (isNaN(id) || !feedback) {
+        alert('Por favor completa el ID y el feedback');
+        return;
+    }
     const juego = obtenerVideojuegoBetaPorID(id);
-    if (juego && feedback) {
+    if (juego) {
         juego.agregarFeedback(feedback);
         guardarVideojuegosBeta(listaVideojuegosBeta);
         alert("Feedback agregado y guardado exitosamente!");
-        document.getElementById('feedbackTexto').value = '';
+        feedbackInput.value = '';
         mostrarJuegosBeta([juego], "resultadoFeedback");
     }
     else {
-        alert("No se encontró el juego o el feedback está vacío");
+        alert("No se encontró el juego beta con ese ID");
     }
 }
 function actualizarJuegoBeta() {
-    const id = parseInt(document.getElementById('actualizarBetaId').value);
+    const idInput = document.getElementById('actualizarBetaId');
+    if (!idInput)
+        return;
+    const id = parseInt(idInput.value);
     const juego = listaVideojuegosBeta.find(j => j.getId() === id && j.getActivo());
     if (juego) {
-        const titulo = document.getElementById('actualizarBetaTitulo').value;
-        if (titulo)
-            juego.setTítulo(titulo);
-        const version = document.getElementById('actualizarBetaVersion').value;
-        if (version)
-            juego.setVersion(version);
-        const rating = document.getElementById('actualizarBetaRating').value;
-        if (rating)
-            juego.setRating(parseFloat(rating));
+        const tituloInput = document.getElementById('actualizarBetaTitulo');
+        const versionInput = document.getElementById('actualizarBetaVersion');
+        const ratingInput = document.getElementById('actualizarBetaRating');
+        if (tituloInput && tituloInput.value)
+            juego.setTítulo(tituloInput.value);
+        if (versionInput && versionInput.value)
+            juego.setVersion(versionInput.value);
+        if (ratingInput && ratingInput.value)
+            juego.setRating(parseFloat(ratingInput.value));
         guardarVideojuegosBeta(listaVideojuegosBeta);
         mostrarJuegosBeta([juego], "resultadoActualizacionBeta");
         alert("Juego Beta actualizado y guardado!");
     }
     else {
-        document.getElementById("resultadoActualizacionBeta").innerHTML = "<div class='no-results'>No se encontró el videojuego beta con ese ID</div>";
+        const contenedor = document.getElementById("resultadoActualizacionBeta");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró el videojuego beta con ese ID</div>";
+        }
     }
 }
 function eliminarJuegoBeta() {
-    const id = parseInt(document.getElementById('eliminarBetaId').value);
-    eliminarVideojuegoBeta(id);
-    alert("Juego Beta eliminado!");
+    const idInput = document.getElementById('eliminarBetaId');
+    if (!idInput)
+        return;
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        alert('Por favor ingresa un ID válido');
+        return;
+    }
+    const juego = obtenerVideojuegoBetaPorID(id);
+    if (!juego) {
+        alert('No se encontró el juego beta con ese ID');
+        return;
+    }
+    if (confirm(`¿Estás seguro de eliminar "${juego.getTítulo()}"?`)) {
+        eliminarVideojuegoBeta(id);
+        alert("Juego Beta eliminado!");
+        idInput.value = '';
+    }
 }
 // ================== FUNCIONES VINCULADAS A BOTONES - RESEÑAS ==================
 function buscarReseñaPorId() {
-    const id = parseInt(document.getElementById('buscarReseñaId').value);
+    const idInput = document.getElementById('buscarReseñaId');
+    if (!idInput)
+        return;
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        const contenedor = document.getElementById("resultadoBusquedaReseña");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>Por favor ingresa un ID válido</div>";
+        }
+        return;
+    }
     const reseña = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
     if (reseña) {
         mostrarReseñas([reseña], "resultadoBusquedaReseña");
     }
     else {
-        document.getElementById("resultadoBusquedaReseña").innerHTML = "<div class='no-results'>No se encontró la reseña</div>";
+        const contenedor = document.getElementById("resultadoBusquedaReseña");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró la reseña</div>";
+        }
     }
 }
 function filtrarPorCalificacion() {
-    const calificacionMinima = parseFloat(document.getElementById('filtroCalificacion').value);
+    const calificacionInput = document.getElementById('filtroCalificacion');
+    if (!calificacionInput)
+        return;
+    const calificacionMinima = parseFloat(calificacionInput.value);
+    if (isNaN(calificacionMinima)) {
+        alert('Por favor ingresa una calificación válida');
+        return;
+    }
     const reseñasFiltradas = listaReseñas.filter(r => r.getCalificacion() >= calificacionMinima && r.getActivo());
     mostrarReseñas(reseñasFiltradas, "resultadoFiltroCalificacion");
 }
 function agregarNuevaReseña() {
-    const idReseña = parseInt(document.getElementById('nuevaReseñaId').value);
-    const usuario = document.getElementById('nuevoUsuario').value;
-    const comentario = document.getElementById('nuevoComentario').value;
-    const calificación = parseFloat(document.getElementById('nuevaCalificacion').value);
-    const fecha = document.getElementById('nuevaFecha').value;
+    const idInput = document.getElementById('nuevaReseñaId');
+    const usuarioInput = document.getElementById('nuevoUsuario');
+    const comentarioInput = document.getElementById('nuevoComentario');
+    const calificacionInput = document.getElementById('nuevaCalificacion');
+    const fechaInput = document.getElementById('nuevaFecha');
+    if (!idInput || !usuarioInput || !comentarioInput || !calificacionInput || !fechaInput) {
+        alert('Error: Faltan campos del formulario');
+        return;
+    }
+    const idReseña = parseInt(idInput.value);
+    const usuario = usuarioInput.value.trim();
+    const comentario = comentarioInput.value.trim();
+    const calificación = parseFloat(calificacionInput.value);
+    const fecha = fechaInput.value.trim();
+    if (isNaN(idReseña) || !usuario || !comentario || isNaN(calificación) || !fecha) {
+        alert('Por favor completa todos los campos correctamente');
+        return;
+    }
+    if (listaReseñas.some(r => r.getIdReseña() === idReseña)) {
+        alert('Ya existe una reseña con ese ID');
+        return;
+    }
     const nuevaReseña = new Reseña(idReseña, usuario, comentario, calificación, fecha, true);
     agregarReseña(nuevaReseña);
     alert("Reseña agregada y guardada!");
+    // Limpiar campos
+    idInput.value = '';
+    usuarioInput.value = '';
+    comentarioInput.value = '';
+    calificacionInput.value = '';
+    fechaInput.value = '';
 }
 function mostrarTodasLasReseñas() {
     mostrarReseñas(listaReseñas.filter(r => r.getActivo()), "todasReseñas");
 }
 function actualizarReseñaCompleta() {
-    const id = parseInt(document.getElementById('actualizarReseñaId').value);
+    const idInput = document.getElementById('actualizarReseñaId');
+    if (!idInput)
+        return;
+    const id = parseInt(idInput.value);
     const reseña = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
     if (reseña) {
-        const usuario = document.getElementById('actualizarUsuario').value;
-        if (usuario)
-            reseña.setUsuario(usuario);
-        const comentario = document.getElementById('actualizarComentario').value;
-        if (comentario)
-            reseña.setComentario(comentario);
-        const calificacion = document.getElementById('actualizarCalificacion').value;
-        if (calificacion)
-            reseña.setCalificacion(parseFloat(calificacion));
+        const usuarioInput = document.getElementById('actualizarUsuario');
+        const comentarioInput = document.getElementById('actualizarComentario');
+        const calificacionInput = document.getElementById('actualizarCalificacion');
+        if (usuarioInput && usuarioInput.value)
+            reseña.setUsuario(usuarioInput.value);
+        if (comentarioInput && comentarioInput.value)
+            reseña.setComentario(comentarioInput.value);
+        if (calificacionInput && calificacionInput.value) {
+            reseña.setCalificacion(parseFloat(calificacionInput.value));
+        }
         guardarReseñas(listaReseñas);
         alert("Reseña actualizada y guardada!");
     }
@@ -469,9 +705,24 @@ function actualizarReseñaCompleta() {
     }
 }
 function eliminarReseñaCompleta() {
-    const id = parseInt(document.getElementById('eliminarReseñaId').value);
-    eliminarReseña(id);
-    alert("Reseña eliminada!");
+    const idInput = document.getElementById('eliminarReseñaId');
+    if (!idInput)
+        return;
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        alert('Por favor ingresa un ID válido');
+        return;
+    }
+    const reseña = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
+    if (!reseña) {
+        alert('No se encontró la reseña con ese ID');
+        return;
+    }
+    if (confirm(`¿Estás seguro de eliminar la reseña de "${reseña.getUsuario()}"?`)) {
+        eliminarReseña(id);
+        alert("Reseña eliminada!");
+        idInput.value = '';
+    }
 }
 // ================== FUNCIONES PARA RAWG Y CHEAPSHARK API ==================
 import { buscarJuego, buscarJuegoPorGenero } from "./rawgAPI.js";
@@ -512,8 +763,11 @@ function renderizarJuegoRAWG(juego) {
     `;
 }
 async function buscarPorGeneroMejorado() {
-    const genero = document.getElementById('buscarGenero').value;
+    const generoInput = document.getElementById('buscarGenero');
     const container = document.getElementById('resultadoGenero');
+    if (!generoInput || !container)
+        return;
+    const genero = generoInput.value.trim();
     if (!genero) {
         alert('Por favor ingresa un género');
         return;
@@ -527,7 +781,7 @@ async function buscarPorGeneroMejorado() {
             html += '<div style="margin-bottom: 30px;">';
             html += '<h3 style="color: #2d3748; margin-bottom: 15px; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">📚 Juegos en tu Colección Local</h3>';
             html += juegosLocales.map(j => {
-                const cardHTML = `
+                return `
                     <div class="game-card">
                         <h4>${j.getTítulo()}</h4>
                         <div class="game-info">
@@ -542,7 +796,6 @@ async function buscarPorGeneroMejorado() {
                         <div class="info-item" style="margin-top: 10px;"><span class="info-label">Descripción:</span> ${j.getDescripcion()}</div>
                     </div>
                 `;
-                return cardHTML;
             }).join('');
             html += '</div>';
         }
@@ -573,8 +826,11 @@ async function buscarPorGeneroMejorado() {
     }
 }
 async function buscarJuegoEnRAWG() {
-    const nombre = document.getElementById('buscarNombreRAWG').value;
+    const nombreInput = document.getElementById('buscarNombreRAWG');
     const container = document.getElementById('resultadoRAWG');
+    if (!nombreInput || !container)
+        return;
+    const nombre = nombreInput.value.trim();
     if (!nombre) {
         alert('Por favor ingresa el nombre de un juego');
         return;
@@ -609,6 +865,8 @@ async function buscarJuegoEnRAWG() {
 }
 async function mostrarJuegosPopularesRAWG() {
     const container = document.getElementById('juegosPopularesRAWG');
+    if (!container)
+        return;
     container.innerHTML = '<p style="text-align: center; padding: 20px;">🔄 Cargando juegos populares desde RAWG...</p>';
     try {
         const juegos = await obtenerJuegosPopulares();
@@ -671,8 +929,11 @@ function renderizarJuegoCheapShark(juego) {
     `;
 }
 async function buscarPreciosEnCheapShark() {
-    const nombre = document.getElementById('buscarPrecioCheapShark').value;
+    const nombreInput = document.getElementById('buscarPrecioCheapShark');
     const container = document.getElementById('resultadoCheapShark');
+    if (!nombreInput || !container)
+        return;
+    const nombre = nombreInput.value.trim();
     if (!nombre) {
         alert('Por favor ingresa el nombre de un juego');
         return;
@@ -707,6 +968,8 @@ async function buscarPreciosEnCheapShark() {
 }
 async function verDetallesOferta(gameID) {
     const container = document.getElementById('detallesOferta');
+    if (!container)
+        return;
     container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Cargando ofertas...</p>';
     container.scrollIntoView({ behavior: 'smooth' });
     try {
@@ -762,6 +1025,8 @@ async function verDetallesOferta(gameID) {
 }
 async function mostrarMejoresOfertas() {
     const container = document.getElementById('mejoresOfertas');
+    if (!container)
+        return;
     container.innerHTML = '<p style="text-align: center; padding: 20px;">🔥 Cargando mejores ofertas...</p>';
     try {
         const ofertas = await obtenerMejoresOfertas(15);
@@ -835,4 +1100,5 @@ window.mostrarJuegosPopularesRAWG = mostrarJuegosPopularesRAWG;
 window.buscarPreciosEnCheapShark = buscarPreciosEnCheapShark;
 window.verDetallesOferta = verDetallesOferta;
 window.mostrarMejoresOfertas = mostrarMejoresOfertas;
+console.log('✅ Todas las funciones expuestas correctamente');
 //# sourceMappingURL=Script.js.map

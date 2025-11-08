@@ -15,7 +15,7 @@ import {
     debugearEstado
 } from "./localStorage.js";
 
-// ================== IMPORTAR SOLO LAS FUNCIONES BÁSICAS DE SESSION ==================
+// ================== IMPORTAR FUNCIONES DE SESSION ==================
 import {
     guardarSesion,
     obtenerSesion,
@@ -35,27 +35,39 @@ let listaReseñas: Reseña[] = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
 
-// ================== PROTECCIÓN SIMPLE DE PÁGINAS ==================
+// ================== PROTECCIÓN DE PÁGINAS - CORREGIDO ==================
 const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
-const esPaginaLogin = paginaActual.includes('login.html') || paginaActual.includes('registro.html');
+const paginasPublicas = ['login.html', 'registro.html'];
 
-// Solo verificar sesión si NO estamos en login/registro
-if (!esPaginaLogin) {
+// Solo verificar sesión si NO estamos en páginas públicas
+const esPaginaPublica = paginasPublicas.some(pagina => paginaActual.includes(pagina));
+
+if (!esPaginaPublica) {
     if (!hayUsuarioLogueado()) {
         console.log('⚠️ No hay sesión activa, redirigiendo al login...');
-        window.location.href = 'login.html';
+        window.location.replace('login.html');
     } else {
         const sesion = obtenerSesion();
         console.log('✅ Usuario logueado:', sesion?.nombre);
     }
+} else {
+    console.log('📄 Página pública detectada:', paginaActual);
 }
 
 // ================== FUNCIONES DE AUTENTICACIÓN ==================
 function iniciarSesion(event: Event): boolean {
     event.preventDefault();
     
-    const email = (document.getElementById('loginEmail') as HTMLInputElement).value;
-    const password = (document.getElementById('loginPassword') as HTMLInputElement).value;
+    const emailInput = document.getElementById('loginEmail') as HTMLInputElement;
+    const passwordInput = document.getElementById('loginPassword') as HTMLInputElement;
+    
+    if (!emailInput || !passwordInput) {
+        console.error('❌ Elementos del formulario no encontrados');
+        return false;
+    }
+    
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
     
     console.log('🔍 Intento de login:', email);
     console.log('📋 Usuarios disponibles:', listaUsuarios.length);
@@ -83,7 +95,7 @@ function iniciarSesion(event: Event): boolean {
     if (typeof usuario.iniciarSesion !== 'function') {
         console.error('❌ ERROR CRÍTICO: El usuario no tiene el método iniciarSesion');
         console.log('Usuario defectuoso:', usuario);
-        alert('Error en la aplicación. Por favor, limpia el caché y recarga.');
+        alert('Error en la aplicación. Por favor, limpia el caché del navegador (Ctrl+Shift+Delete) y recarga.');
         return false;
     }
     
@@ -93,7 +105,7 @@ function iniciarSesion(event: Event): boolean {
     if (loginExitoso) {
         console.log('✅ Login exitoso');
         
-        // 🔥 GUARDAR SESIÓN CON SESSION GUARD
+        // Guardar sesión
         guardarSesion(usuario);
         
         const successDiv = document.getElementById('successMessage');
@@ -103,7 +115,7 @@ function iniciarSesion(event: Event): boolean {
         }
         
         setTimeout(() => {
-            window.location.replace('index.html'); // Usar replace para evitar volver atrás
+            window.location.replace('index.html');
         }, 1000);
         return false;
     } else {
@@ -121,13 +133,42 @@ function iniciarSesion(event: Event): boolean {
 function registrarUsuario(event: Event): boolean {
     event.preventDefault();
     
-    const id = parseInt((document.getElementById('regId') as HTMLInputElement).value);
-    const nombre = (document.getElementById('regNombre') as HTMLInputElement).value;
-    const email = (document.getElementById('regEmail') as HTMLInputElement).value;
-    const password = (document.getElementById('regPassword') as HTMLInputElement).value;
+    const idInput = document.getElementById('regId') as HTMLInputElement;
+    const nombreInput = document.getElementById('regNombre') as HTMLInputElement;
+    const emailInput = document.getElementById('regEmail') as HTMLInputElement;
+    const passwordInput = document.getElementById('regPassword') as HTMLInputElement;
+    
+    if (!idInput || !nombreInput || !emailInput || !passwordInput) {
+        console.error('❌ Elementos del formulario no encontrados');
+        return false;
+    }
+    
+    const id = parseInt(idInput.value);
+    const nombre = nombreInput.value.trim();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
     
     const errorDiv = document.getElementById('errorMessage');
     const successDiv = document.getElementById('successMessage');
+    
+    // Validaciones
+    if (isNaN(id) || id <= 0) {
+        if (errorDiv) {
+            errorDiv.textContent = 'El ID debe ser un número positivo';
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 4000);
+        }
+        return false;
+    }
+    
+    if (!nombre || !email || !password) {
+        if (errorDiv) {
+            errorDiv.textContent = 'Todos los campos son obligatorios';
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 4000);
+        }
+        return false;
+    }
     
     // Verificar si el ID o email ya existen
     if (listaUsuarios.some(u => u.getIdUsuario() === id)) {
@@ -152,7 +193,7 @@ function registrarUsuario(event: Event): boolean {
     const nuevoUsuario = new Usuario(id, nombre, email, password, true);
     listaUsuarios.push(nuevoUsuario);
     
-    // 🔥 GUARDAR EN LOCALSTORAGE
+    // Guardar en LocalStorage
     guardarUsuarios(listaUsuarios);
     
     if (successDiv) {
@@ -162,10 +203,10 @@ function registrarUsuario(event: Event): boolean {
     }
     
     // Limpiar formulario
-    (document.getElementById('regId') as HTMLInputElement).value = '';
-    (document.getElementById('regNombre') as HTMLInputElement).value = '';
-    (document.getElementById('regEmail') as HTMLInputElement).value = '';
-    (document.getElementById('regPassword') as HTMLInputElement).value = '';
+    idInput.value = '';
+    nombreInput.value = '';
+    emailInput.value = '';
+    passwordInput.value = '';
     
     // Cerrar el formulario de registro
     const registerSection = document.getElementById('registerSection');
@@ -179,22 +220,26 @@ function registrarUsuario(event: Event): boolean {
 function cerrarSesion(): void {
     console.log('🚪 Cerrando sesión...');
     
-    // 🔥 CERRAR SESIÓN CON SESSION GUARD
+    // Cerrar sesión
     cerrarSesionGuard();
     
-    // Redirigir al login usando replace para evitar volver atrás
+    // Redirigir al login
     window.location.replace('login.html');
 }
 
 // ================== INTERFAZ - VIDEOJUEGOS ==================
 function mostrarJuegos(juegos: Videojuego[], contenedorId: string): void {
-    const contenedor = document.getElementById(contenedorId)!;
-    if (!contenedor) return;
+    const contenedor = document.getElementById(contenedorId);
+    if (!contenedor) {
+        console.warn(`⚠️ Contenedor ${contenedorId} no encontrado`);
+        return;
+    }
     
     if (!juegos || juegos.length === 0) {
         contenedor.innerHTML = '<div class="no-results">No se encontraron juegos.</div>';
         return;
     }
+    
     contenedor.innerHTML = juegos.map(juego => `
         <div class="game-card">
             <h4>${juego.getTítulo()}</h4>
@@ -215,13 +260,17 @@ function mostrarJuegos(juegos: Videojuego[], contenedorId: string): void {
 
 // ================== INTERFAZ - VIDEOJUEGOS BETA ==================
 function mostrarJuegosBeta(juegos: VideojuegoBeta[], contenedorId: string): void {
-    const contenedor = document.getElementById(contenedorId)!;
-    if (!contenedor) return;
+    const contenedor = document.getElementById(contenedorId);
+    if (!contenedor) {
+        console.warn(`⚠️ Contenedor ${contenedorId} no encontrado`);
+        return;
+    }
     
     if (!juegos || juegos.length === 0) {
         contenedor.innerHTML = '<div class="no-results">No se encontraron juegos beta.</div>';
         return;
     }
+    
     contenedor.innerHTML = juegos.map(juego => {
         const feedback = juego.obtenerFeedback();
         const feedbackHTML = feedback.length > 0 
@@ -253,13 +302,17 @@ function mostrarJuegosBeta(juegos: VideojuegoBeta[], contenedorId: string): void
 
 // ================== INTERFAZ - RESEÑAS ==================
 function mostrarReseñas(reseñas: Reseña[], contenedorId: string): void {
-    const contenedor = document.getElementById(contenedorId)!;
-    if (!contenedor) return;
+    const contenedor = document.getElementById(contenedorId);
+    if (!contenedor) {
+        console.warn(`⚠️ Contenedor ${contenedorId} no encontrado`);
+        return;
+    }
     
     if (!reseñas || reseñas.length === 0) {
         contenedor.innerHTML = '<div class="no-results">No se encontraron reseñas.</div>';
         return;
     }
+    
     contenedor.innerHTML = reseñas.map(r => `
         <div class="review-card">
             <h4>Reseña de ${r.getUsuario()}</h4>
@@ -323,14 +376,6 @@ function agregarReseña(nuevaReseña: Reseña): void {
     guardarReseñas(listaReseñas);
 }
 
-function actualizarReseña(id: number, datosActualizados: Partial<Reseña>): void {
-    const r = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
-    if (r) {
-        Object.assign(r, datosActualizados);
-        guardarReseñas(listaReseñas);
-    }
-}
-
 function eliminarReseña(id: number): void {
     const r = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
     if (r) {
@@ -345,16 +390,46 @@ function mostrarTodosLosJuegos(): void {
 }
 
 function agregarNuevoJuego(): void {
-    const Id = parseInt((document.getElementById('nuevoId') as HTMLInputElement).value);
-    const título = (document.getElementById('nuevoTitulo') as HTMLInputElement).value;
-    const genero = (document.getElementById('nuevoGenero') as HTMLInputElement).value;
-    const desarrollador = (document.getElementById('nuevoDesarrollador') as HTMLInputElement).value;
-    const añoLanzamiento = parseInt((document.getElementById('nuevoAño') as HTMLInputElement).value);
-    const plataforma = (document.getElementById('nuevaPlataforma') as HTMLInputElement).value;
-    const descripcion = (document.getElementById('nuevaDescripcion') as HTMLTextAreaElement).value;
-    const precio = parseInt((document.getElementById('nuevoPrecio') as HTMLInputElement).value);
-    const estado = (document.getElementById('nuevoEstado') as HTMLSelectElement).value;
-    const rating = parseFloat((document.getElementById('nuevoRating') as HTMLInputElement).value);
+    const idInput = document.getElementById('nuevoId') as HTMLInputElement;
+    const tituloInput = document.getElementById('nuevoTitulo') as HTMLInputElement;
+    const generoInput = document.getElementById('nuevoGenero') as HTMLInputElement;
+    const desarrolladorInput = document.getElementById('nuevoDesarrollador') as HTMLInputElement;
+    const añoInput = document.getElementById('nuevoAño') as HTMLInputElement;
+    const plataformaInput = document.getElementById('nuevaPlataforma') as HTMLInputElement;
+    const descripcionInput = document.getElementById('nuevaDescripcion') as HTMLTextAreaElement;
+    const precioInput = document.getElementById('nuevoPrecio') as HTMLInputElement;
+    const estadoInput = document.getElementById('nuevoEstado') as HTMLSelectElement;
+    const ratingInput = document.getElementById('nuevoRating') as HTMLInputElement;
+
+    if (!idInput || !tituloInput || !generoInput || !desarrolladorInput || 
+        !añoInput || !plataformaInput || !descripcionInput || !precioInput || 
+        !estadoInput || !ratingInput) {
+        alert('Error: Faltan campos del formulario');
+        return;
+    }
+
+    const Id = parseInt(idInput.value);
+    const título = tituloInput.value.trim();
+    const genero = generoInput.value.trim();
+    const desarrollador = desarrolladorInput.value.trim();
+    const añoLanzamiento = parseInt(añoInput.value);
+    const plataforma = plataformaInput.value.trim();
+    const descripcion = descripcionInput.value.trim();
+    const precio = parseInt(precioInput.value);
+    const estado = estadoInput.value;
+    const rating = parseFloat(ratingInput.value);
+
+    // Validaciones
+    if (isNaN(Id) || !título || !genero || !desarrollador || isNaN(añoLanzamiento) || 
+        !plataforma || !descripcion || isNaN(precio) || isNaN(rating)) {
+        alert('Por favor completa todos los campos correctamente');
+        return;
+    }
+
+    if (listaVideojuegos.some(j => j.getId() === Id)) {
+        alert('Ya existe un juego con ese ID');
+        return;
+    }
 
     const nuevoJuego = new Videojuego(
         Id, título, genero, desarrollador, añoLanzamiento,
@@ -363,57 +438,111 @@ function agregarNuevoJuego(): void {
 
     agregarVideojuego(nuevoJuego);
     alert("Juego agregado y guardado en LocalStorage!");
+    
+    // Limpiar campos
+    idInput.value = '';
+    tituloInput.value = '';
+    generoInput.value = '';
+    desarrolladorInput.value = '';
+    añoInput.value = '';
+    plataformaInput.value = '';
+    descripcionInput.value = '';
+    precioInput.value = '';
+    ratingInput.value = '';
 }
 
 function buscarPorId(): void {
-    const id = parseInt((document.getElementById('buscarId') as HTMLInputElement).value);
+    const idInput = document.getElementById('buscarId') as HTMLInputElement;
+    if (!idInput) return;
+    
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        const contenedor = document.getElementById("resultadoBusqueda");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>Por favor ingresa un ID válido</div>";
+        }
+        return;
+    }
+    
     const juego = obtenerVideojuegoPorID(id);
     if (juego) {
         mostrarJuegos([juego], "resultadoBusqueda");
     } else {
-        document.getElementById("resultadoBusqueda")!.innerHTML = "<div class='no-results'>No se encontró el juego</div>";
+        const contenedor = document.getElementById("resultadoBusqueda");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró el juego</div>";
+        }
     }
 }
 
 function buscarPorGenero(): void {
-    const genero = (document.getElementById('buscarGenero') as HTMLInputElement).value.toLowerCase();
-    const juegos = listaVideojuegos.filter(j => j.getGenero().toLowerCase().includes(genero) && j.getActivo());
+    const generoInput = document.getElementById('buscarGenero') as HTMLInputElement;
+    if (!generoInput) return;
+    
+    const genero = generoInput.value.toLowerCase().trim();
+    if (!genero) {
+        alert('Por favor ingresa un género');
+        return;
+    }
+    
+    const juegos = listaVideojuegos.filter(j => 
+        j.getGenero().toLowerCase().includes(genero) && j.getActivo()
+    );
     mostrarJuegos(juegos, "resultadoGenero");
 }
 
 function actualizarJuego(): void {
-    const id = parseInt((document.getElementById('actualizarId') as HTMLInputElement).value);
+    const idInput = document.getElementById('actualizarId') as HTMLInputElement;
+    if (!idInput) return;
+    
+    const id = parseInt(idInput.value);
     const juego = listaVideojuegos.find(j => j.getId() === id && j.getActivo());
 
     if (juego) {
-        const titulo = (document.getElementById('actualizarTitulo') as HTMLInputElement).value;
-        if (titulo) juego.setTítulo(titulo);
+        const tituloInput = document.getElementById('actualizarTitulo') as HTMLInputElement;
+        const generoInput = document.getElementById('actualizarGenero') as HTMLInputElement;
+        const desarrolladorInput = document.getElementById('actualizarDesarrollador') as HTMLInputElement;
+        const precioInput = document.getElementById('actualizarPrecio') as HTMLInputElement;
+        const ratingInput = document.getElementById('actualizarRating') as HTMLInputElement;
 
-        const genero = (document.getElementById('actualizarGenero') as HTMLInputElement).value;
-        if (genero) juego.setGenero(genero);
-
-        const desarrollador = (document.getElementById('actualizarDesarrollador') as HTMLInputElement).value;
-        if (desarrollador) juego.setDesarrollador(desarrollador);
-
-        const precio = (document.getElementById('actualizarPrecio') as HTMLInputElement).value;
-        if (precio) juego.setPrecio(parseInt(precio));
-
-        const rating = (document.getElementById('actualizarRating') as HTMLInputElement).value;
-        if (rating) juego.setRating(parseFloat(rating));
+        if (tituloInput && tituloInput.value) juego.setTítulo(tituloInput.value);
+        if (generoInput && generoInput.value) juego.setGenero(generoInput.value);
+        if (desarrolladorInput && desarrolladorInput.value) juego.setDesarrollador(desarrolladorInput.value);
+        if (precioInput && precioInput.value) juego.setPrecio(parseInt(precioInput.value));
+        if (ratingInput && ratingInput.value) juego.setRating(parseFloat(ratingInput.value));
 
         guardarVideojuegos(listaVideojuegos);
-
         mostrarJuegos([juego], "resultadoActualizacion");
         alert("Juego actualizado y guardado!");
     } else {
-        document.getElementById("resultadoActualizacion")!.innerHTML = "<div class='no-results'>No se encontró el videojuego con ese ID</div>";
+        const contenedor = document.getElementById("resultadoActualizacion");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró el videojuego con ese ID</div>";
+        }
     }
 }
 
 function eliminarJuego(): void {
-    const id = parseInt((document.getElementById('eliminarId') as HTMLInputElement).value);
-    eliminarVideojuego(id);
-    alert("Juego eliminado!");
+    const idInput = document.getElementById('eliminarId') as HTMLInputElement;
+    if (!idInput) return;
+    
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        alert('Por favor ingresa un ID válido');
+        return;
+    }
+    
+    const juego = obtenerVideojuegoPorID(id);
+    if (!juego) {
+        alert('No se encontró el juego con ese ID');
+        return;
+    }
+    
+    if (confirm(`¿Estás seguro de eliminar "${juego.getTítulo()}"?`)) {
+        eliminarVideojuego(id);
+        alert("Juego eliminado!");
+        idInput.value = '';
+    }
 }
 
 // ================== FUNCIONES VINCULADAS A BOTONES - VIDEOJUEGOS BETA ==================
@@ -422,16 +551,45 @@ function mostrarTodosLosJuegosBeta(): void {
 }
 
 function agregarNuevoJuegoBeta(): void {
-    const Id = parseInt((document.getElementById('nuevoBetaId') as HTMLInputElement).value);
-    const título = (document.getElementById('nuevoBetaTitulo') as HTMLInputElement).value;
-    const genero = (document.getElementById('nuevoBetaGenero') as HTMLInputElement).value;
-    const desarrollador = (document.getElementById('nuevoBetaDesarrollador') as HTMLInputElement).value;
-    const añoLanzamiento = parseInt((document.getElementById('nuevoBetaAño') as HTMLInputElement).value);
-    const plataforma = (document.getElementById('nuevoBetaPlataforma') as HTMLInputElement).value;
-    const descripcion = (document.getElementById('nuevoBetaDescripcion') as HTMLTextAreaElement).value;
-    const rating = parseFloat((document.getElementById('nuevoBetaRating') as HTMLInputElement).value);
-    const fechaAcceso = (document.getElementById('nuevoBetaFecha') as HTMLInputElement).value;
-    const version = (document.getElementById('nuevoBetaVersion') as HTMLInputElement).value;
+    const idInput = document.getElementById('nuevoBetaId') as HTMLInputElement;
+    const tituloInput = document.getElementById('nuevoBetaTitulo') as HTMLInputElement;
+    const generoInput = document.getElementById('nuevoBetaGenero') as HTMLInputElement;
+    const desarrolladorInput = document.getElementById('nuevoBetaDesarrollador') as HTMLInputElement;
+    const añoInput = document.getElementById('nuevoBetaAño') as HTMLInputElement;
+    const plataformaInput = document.getElementById('nuevoBetaPlataforma') as HTMLInputElement;
+    const descripcionInput = document.getElementById('nuevoBetaDescripcion') as HTMLTextAreaElement;
+    const ratingInput = document.getElementById('nuevoBetaRating') as HTMLInputElement;
+    const fechaInput = document.getElementById('nuevoBetaFecha') as HTMLInputElement;
+    const versionInput = document.getElementById('nuevoBetaVersion') as HTMLInputElement;
+
+    if (!idInput || !tituloInput || !generoInput || !desarrolladorInput || 
+        !añoInput || !plataformaInput || !descripcionInput || !ratingInput || 
+        !fechaInput || !versionInput) {
+        alert('Error: Faltan campos del formulario');
+        return;
+    }
+
+    const Id = parseInt(idInput.value);
+    const título = tituloInput.value.trim();
+    const genero = generoInput.value.trim();
+    const desarrollador = desarrolladorInput.value.trim();
+    const añoLanzamiento = parseInt(añoInput.value);
+    const plataforma = plataformaInput.value.trim();
+    const descripcion = descripcionInput.value.trim();
+    const rating = parseFloat(ratingInput.value);
+    const fechaAcceso = fechaInput.value.trim();
+    const version = versionInput.value.trim();
+
+    if (isNaN(Id) || !título || !genero || !desarrollador || isNaN(añoLanzamiento) || 
+        !plataforma || !descripcion || isNaN(rating) || !fechaAcceso || !version) {
+        alert('Por favor completa todos los campos correctamente');
+        return;
+    }
+
+    if (listaVideojuegosBeta.some(j => j.getId() === Id)) {
+        alert('Ya existe un juego beta con ese ID');
+        return;
+    }
 
     const nuevoJuegoBeta = new VideojuegoBeta(
         Id, título, genero, desarrollador, añoLanzamiento,
@@ -441,91 +599,202 @@ function agregarNuevoJuegoBeta(): void {
 
     agregarVideojuegoBeta(nuevoJuegoBeta);
     alert("Juego Beta agregado y guardado!");
+    
+    // Limpiar campos
+    idInput.value = '';
+    tituloInput.value = '';
+    generoInput.value = '';
+    desarrolladorInput.value = '';
+    añoInput.value = '';
+    plataformaInput.value = '';
+    descripcionInput.value = '';
+    ratingInput.value = '';
+    fechaInput.value = '';
+    versionInput.value = '';
 }
 
 function buscarBetaPorId(): void {
-    const id = parseInt((document.getElementById('buscarBetaId') as HTMLInputElement).value);
+    const idInput = document.getElementById('buscarBetaId') as HTMLInputElement;
+    if (!idInput) return;
+    
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        const contenedor = document.getElementById("resultadoBusquedaBeta");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>Por favor ingresa un ID válido</div>";
+        }
+        return;
+    }
+    
     const juego = obtenerVideojuegoBetaPorID(id);
     if (juego) {
         mostrarJuegosBeta([juego], "resultadoBusquedaBeta");
     } else {
-        document.getElementById("resultadoBusquedaBeta")!.innerHTML = "<div class='no-results'>No se encontró el juego beta</div>";
+        const contenedor = document.getElementById("resultadoBusquedaBeta");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró el juego beta</div>";
+        }
     }
 }
 
 function agregarFeedbackBeta(): void {
-    const id = parseInt((document.getElementById('feedbackBetaId') as HTMLInputElement).value);
-    const feedback = (document.getElementById('feedbackTexto') as HTMLTextAreaElement).value;
+    const idInput = document.getElementById('feedbackBetaId') as HTMLInputElement;
+    const feedbackInput = document.getElementById('feedbackTexto') as HTMLTextAreaElement;
+    
+    if (!idInput || !feedbackInput) return;
+    
+    const id = parseInt(idInput.value);
+    const feedback = feedbackInput.value.trim();
+    
+    if (isNaN(id) || !feedback) {
+        alert('Por favor completa el ID y el feedback');
+        return;
+    }
+    
     const juego = obtenerVideojuegoBetaPorID(id);
     
-    if (juego && feedback) {
+    if (juego) {
         juego.agregarFeedback(feedback);
         guardarVideojuegosBeta(listaVideojuegosBeta);
         
         alert("Feedback agregado y guardado exitosamente!");
-        (document.getElementById('feedbackTexto') as HTMLTextAreaElement).value = '';
+        feedbackInput.value = '';
         mostrarJuegosBeta([juego], "resultadoFeedback");
     } else {
-        alert("No se encontró el juego o el feedback está vacío");
+        alert("No se encontró el juego beta con ese ID");
     }
 }
 
 function actualizarJuegoBeta(): void {
-    const id = parseInt((document.getElementById('actualizarBetaId') as HTMLInputElement).value);
+    const idInput = document.getElementById('actualizarBetaId') as HTMLInputElement;
+    if (!idInput) return;
+    
+    const id = parseInt(idInput.value);
     const juego = listaVideojuegosBeta.find(j => j.getId() === id && j.getActivo());
 
     if (juego) {
-        const titulo = (document.getElementById('actualizarBetaTitulo') as HTMLInputElement).value;
-        if (titulo) juego.setTítulo(titulo);
+        const tituloInput = document.getElementById('actualizarBetaTitulo') as HTMLInputElement;
+        const versionInput = document.getElementById('actualizarBetaVersion') as HTMLInputElement;
+        const ratingInput = document.getElementById('actualizarBetaRating') as HTMLInputElement;
 
-        const version = (document.getElementById('actualizarBetaVersion') as HTMLInputElement).value;
-        if (version) juego.setVersion(version);
-
-        const rating = (document.getElementById('actualizarBetaRating') as HTMLInputElement).value;
-        if (rating) juego.setRating(parseFloat(rating));
+        if (tituloInput && tituloInput.value) juego.setTítulo(tituloInput.value);
+        if (versionInput && versionInput.value) juego.setVersion(versionInput.value);
+        if (ratingInput && ratingInput.value) juego.setRating(parseFloat(ratingInput.value));
 
         guardarVideojuegosBeta(listaVideojuegosBeta);
-
         mostrarJuegosBeta([juego], "resultadoActualizacionBeta");
         alert("Juego Beta actualizado y guardado!");
     } else {
-        document.getElementById("resultadoActualizacionBeta")!.innerHTML = "<div class='no-results'>No se encontró el videojuego beta con ese ID</div>";
+        const contenedor = document.getElementById("resultadoActualizacionBeta");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró el videojuego beta con ese ID</div>";
+        }
     }
 }
 
 function eliminarJuegoBeta(): void {
-    const id = parseInt((document.getElementById('eliminarBetaId') as HTMLInputElement).value);
-    eliminarVideojuegoBeta(id);
-    alert("Juego Beta eliminado!");
+    const idInput = document.getElementById('eliminarBetaId') as HTMLInputElement;
+    if (!idInput) return;
+    
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        alert('Por favor ingresa un ID válido');
+        return;
+    }
+    
+    const juego = obtenerVideojuegoBetaPorID(id);
+    if (!juego) {
+        alert('No se encontró el juego beta con ese ID');
+        return;
+    }
+    
+    if (confirm(`¿Estás seguro de eliminar "${juego.getTítulo()}"?`)) {
+        eliminarVideojuegoBeta(id);
+        alert("Juego Beta eliminado!");
+        idInput.value = '';
+    }
 }
 
 // ================== FUNCIONES VINCULADAS A BOTONES - RESEÑAS ==================
 function buscarReseñaPorId(): void {
-    const id = parseInt((document.getElementById('buscarReseñaId') as HTMLInputElement).value);
+    const idInput = document.getElementById('buscarReseñaId') as HTMLInputElement;
+    if (!idInput) return;
+    
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        const contenedor = document.getElementById("resultadoBusquedaReseña");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>Por favor ingresa un ID válido</div>";
+        }
+        return;
+    }
+    
     const reseña = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
     
     if (reseña) {
         mostrarReseñas([reseña], "resultadoBusquedaReseña");
     } else {
-        document.getElementById("resultadoBusquedaReseña")!.innerHTML = "<div class='no-results'>No se encontró la reseña</div>";
+        const contenedor = document.getElementById("resultadoBusquedaReseña");
+        if (contenedor) {
+            contenedor.innerHTML = "<div class='no-results'>No se encontró la reseña</div>";
+        }
     }
 }
 
 function filtrarPorCalificacion(): void {
-    const calificacionMinima = parseFloat((document.getElementById('filtroCalificacion') as HTMLInputElement).value);
-    const reseñasFiltradas = listaReseñas.filter(r => r.getCalificacion() >= calificacionMinima && r.getActivo());
+    const calificacionInput = document.getElementById('filtroCalificacion') as HTMLInputElement;
+    if (!calificacionInput) return;
+    
+    const calificacionMinima = parseFloat(calificacionInput.value);
+    if (isNaN(calificacionMinima)) {
+        alert('Por favor ingresa una calificación válida');
+        return;
+    }
+    
+    const reseñasFiltradas = listaReseñas.filter(r => 
+        r.getCalificacion() >= calificacionMinima && r.getActivo()
+    );
     mostrarReseñas(reseñasFiltradas, "resultadoFiltroCalificacion");
 }
 
 function agregarNuevaReseña(): void {
-    const idReseña = parseInt((document.getElementById('nuevaReseñaId') as HTMLInputElement).value);
-    const usuario = (document.getElementById('nuevoUsuario') as HTMLInputElement).value;
-    const comentario = (document.getElementById('nuevoComentario') as HTMLTextAreaElement).value;
-    const calificación = parseFloat((document.getElementById('nuevaCalificacion') as HTMLInputElement).value);
-    const fecha = (document.getElementById('nuevaFecha') as HTMLInputElement).value;
+    const idInput = document.getElementById('nuevaReseñaId') as HTMLInputElement;
+    const usuarioInput = document.getElementById('nuevoUsuario') as HTMLInputElement;
+    const comentarioInput = document.getElementById('nuevoComentario') as HTMLTextAreaElement;
+    const calificacionInput = document.getElementById('nuevaCalificacion') as HTMLInputElement;
+    const fechaInput = document.getElementById('nuevaFecha') as HTMLInputElement;
+    
+    if (!idInput || !usuarioInput || !comentarioInput || !calificacionInput || !fechaInput) {
+        alert('Error: Faltan campos del formulario');
+        return;
+    }
+    
+    const idReseña = parseInt(idInput.value);
+    const usuario = usuarioInput.value.trim();
+    const comentario = comentarioInput.value.trim();
+    const calificación = parseFloat(calificacionInput.value);
+    const fecha = fechaInput.value.trim();
+    
+    if (isNaN(idReseña) || !usuario || !comentario || isNaN(calificación) || !fecha) {
+        alert('Por favor completa todos los campos correctamente');
+        return;
+    }
+    
+    if (listaReseñas.some(r => r.getIdReseña() === idReseña)) {
+        alert('Ya existe una reseña con ese ID');
+        return;
+    }
+    
     const nuevaReseña = new Reseña(idReseña, usuario, comentario, calificación, fecha, true);
     agregarReseña(nuevaReseña);
     alert("Reseña agregada y guardada!");
+    
+    // Limpiar campos
+    idInput.value = '';
+    usuarioInput.value = '';
+    comentarioInput.value = '';
+    calificacionInput.value = '';
+    fechaInput.value = '';
 }
 
 function mostrarTodasLasReseñas(): void {
@@ -533,21 +802,24 @@ function mostrarTodasLasReseñas(): void {
 }
 
 function actualizarReseñaCompleta(): void {
-    const id = parseInt((document.getElementById('actualizarReseñaId') as HTMLInputElement).value);
+    const idInput = document.getElementById('actualizarReseñaId') as HTMLInputElement;
+    if (!idInput) return;
+    
+    const id = parseInt(idInput.value);
     const reseña = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
 
     if (reseña) {
-        const usuario = (document.getElementById('actualizarUsuario') as HTMLInputElement).value;
-        if (usuario) reseña.setUsuario(usuario);
+        const usuarioInput = document.getElementById('actualizarUsuario') as HTMLInputElement;
+        const comentarioInput = document.getElementById('actualizarComentario') as HTMLTextAreaElement;
+        const calificacionInput = document.getElementById('actualizarCalificacion') as HTMLInputElement;
 
-        const comentario = (document.getElementById('actualizarComentario') as HTMLTextAreaElement).value;
-        if (comentario) reseña.setComentario(comentario);
-
-        const calificacion = (document.getElementById('actualizarCalificacion') as HTMLInputElement).value;
-        if (calificacion) reseña.setCalificacion(parseFloat(calificacion));
+        if (usuarioInput && usuarioInput.value) reseña.setUsuario(usuarioInput.value);
+        if (comentarioInput && comentarioInput.value) reseña.setComentario(comentarioInput.value);
+        if (calificacionInput && calificacionInput.value) {
+            reseña.setCalificacion(parseFloat(calificacionInput.value));
+        }
 
         guardarReseñas(listaReseñas);
-
         alert("Reseña actualizada y guardada!");
     } else {
         alert("No se encontró la reseña con ese ID");
@@ -555,9 +827,26 @@ function actualizarReseñaCompleta(): void {
 }
 
 function eliminarReseñaCompleta(): void {
-    const id = parseInt((document.getElementById('eliminarReseñaId') as HTMLInputElement).value);
-    eliminarReseña(id);
-    alert("Reseña eliminada!");
+    const idInput = document.getElementById('eliminarReseñaId') as HTMLInputElement;
+    if (!idInput) return;
+    
+    const id = parseInt(idInput.value);
+    if (isNaN(id)) {
+        alert('Por favor ingresa un ID válido');
+        return;
+    }
+    
+    const reseña = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
+    if (!reseña) {
+        alert('No se encontró la reseña con ese ID');
+        return;
+    }
+    
+    if (confirm(`¿Estás seguro de eliminar la reseña de "${reseña.getUsuario()}"?`)) {
+        eliminarReseña(id);
+        alert("Reseña eliminada!");
+        idInput.value = '';
+    }
 }
 
 // ================== FUNCIONES PARA RAWG Y CHEAPSHARK API ==================
@@ -623,8 +912,12 @@ function renderizarJuegoRAWG(juego: JuegoRAWG): string {
 }
 
 async function buscarPorGeneroMejorado(): Promise<void> {
-    const genero = (document.getElementById('buscarGenero') as HTMLInputElement).value;
-    const container = document.getElementById('resultadoGenero')!;
+    const generoInput = document.getElementById('buscarGenero') as HTMLInputElement;
+    const container = document.getElementById('resultadoGenero');
+    
+    if (!generoInput || !container) return;
+    
+    const genero = generoInput.value.trim();
     
     if (!genero) {
         alert('Por favor ingresa un género');
@@ -646,7 +939,7 @@ async function buscarPorGeneroMejorado(): Promise<void> {
             html += '<div style="margin-bottom: 30px;">';
             html += '<h3 style="color: #2d3748; margin-bottom: 15px; padding: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">📚 Juegos en tu Colección Local</h3>';
             html += juegosLocales.map(j => {
-                const cardHTML = `
+                return `
                     <div class="game-card">
                         <h4>${j.getTítulo()}</h4>
                         <div class="game-info">
@@ -661,7 +954,6 @@ async function buscarPorGeneroMejorado(): Promise<void> {
                         <div class="info-item" style="margin-top: 10px;"><span class="info-label">Descripción:</span> ${j.getDescripcion()}</div>
                     </div>
                 `;
-                return cardHTML;
             }).join('');
             html += '</div>';
         }
@@ -696,8 +988,12 @@ async function buscarPorGeneroMejorado(): Promise<void> {
 }
 
 async function buscarJuegoEnRAWG(): Promise<void> {
-    const nombre = (document.getElementById('buscarNombreRAWG') as HTMLInputElement).value;
-    const container = document.getElementById('resultadoRAWG')!;
+    const nombreInput = document.getElementById('buscarNombreRAWG') as HTMLInputElement;
+    const container = document.getElementById('resultadoRAWG');
+    
+    if (!nombreInput || !container) return;
+    
+    const nombre = nombreInput.value.trim();
     
     if (!nombre) {
         alert('Por favor ingresa el nombre de un juego');
@@ -738,7 +1034,9 @@ async function buscarJuegoEnRAWG(): Promise<void> {
 }
 
 async function mostrarJuegosPopularesRAWG(): Promise<void> {
-    const container = document.getElementById('juegosPopularesRAWG')!;
+    const container = document.getElementById('juegosPopularesRAWG');
+    
+    if (!container) return;
     
     container.innerHTML = '<p style="text-align: center; padding: 20px;">🔄 Cargando juegos populares desde RAWG...</p>';
     
@@ -809,8 +1107,12 @@ function renderizarJuegoCheapShark(juego: JuegoCheapShark): string {
 }
 
 async function buscarPreciosEnCheapShark(): Promise<void> {
-    const nombre = (document.getElementById('buscarPrecioCheapShark') as HTMLInputElement).value;
-    const container = document.getElementById('resultadoCheapShark')!;
+    const nombreInput = document.getElementById('buscarPrecioCheapShark') as HTMLInputElement;
+    const container = document.getElementById('resultadoCheapShark');
+    
+    if (!nombreInput || !container) return;
+    
+    const nombre = nombreInput.value.trim();
     
     if (!nombre) {
         alert('Por favor ingresa el nombre de un juego');
@@ -851,7 +1153,9 @@ async function buscarPreciosEnCheapShark(): Promise<void> {
 }
 
 async function verDetallesOferta(gameID: string): Promise<void> {
-    const container = document.getElementById('detallesOferta')!;
+    const container = document.getElementById('detallesOferta');
+    
+    if (!container) return;
     
     container.innerHTML = '<p style="text-align: center; padding: 20px;">🔍 Cargando ofertas...</p>';
     container.scrollIntoView({ behavior: 'smooth' });
@@ -914,7 +1218,9 @@ async function verDetallesOferta(gameID: string): Promise<void> {
 }
 
 async function mostrarMejoresOfertas(): Promise<void> {
-    const container = document.getElementById('mejoresOfertas')!;
+    const container = document.getElementById('mejoresOfertas');
+    
+    if (!container) return;
     
     container.innerHTML = '<p style="text-align: center; padding: 20px;">🔥 Cargando mejores ofertas...</p>';
     
@@ -996,3 +1302,5 @@ async function mostrarMejoresOfertas(): Promise<void> {
 (window as any).buscarPreciosEnCheapShark = buscarPreciosEnCheapShark;
 (window as any).verDetallesOferta = verDetallesOferta;
 (window as any).mostrarMejoresOfertas = mostrarMejoresOfertas;
+
+console.log('✅ Todas las funciones expuestas correctamente');
