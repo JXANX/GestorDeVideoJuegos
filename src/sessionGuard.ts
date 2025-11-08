@@ -1,4 +1,4 @@
-// sessionGuard.ts - Sistema de protección de sesión (SOLO FUNCIONES)
+// sessionGuard.ts - Sistema de protección de sesión (FUNCIONAL SIN BUCLES)
 
 // ==================== CONFIGURACIÓN ====================
 const KEYS = {
@@ -75,4 +75,31 @@ export function cerrarSesion(): void {
  */
 export function hayUsuarioLogueado(): boolean {
     return obtenerSesion() !== null;
+}
+
+/**
+ * Protege las páginas según el estado de la sesión
+ * Evita bucles de redirección
+ */
+export function protegerRuta(): void {
+    const rutaActual = window.location.pathname;
+    const enLogin = rutaActual.includes('login');
+    const logueado = hayUsuarioLogueado();
+
+    // ✅ Si NO está logueado y NO está en login → redirigir al login
+    if (!logueado && !enLogin) {
+        console.warn('🔒 Acceso denegado. Redirigiendo al login...');
+        window.location.href = '/login.html';
+        return;
+    }
+
+    // ✅ Si está logueado y está en login → redirigir al home
+    if (logueado && enLogin) {
+        console.log('➡️ Ya hay sesión. Redirigiendo al home...');
+        window.location.href = '/index.html'; // o donde tengas tu página principal
+        return;
+    }
+
+    // ✅ Si pasa las condiciones, no hacer nada
+    console.log('✅ Acceso permitido a:', rutaActual);
 }

@@ -16,23 +16,31 @@ let listaVideojuegosBeta = datosIniciales.videojuegosBeta;
 let listaReseñas = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
-// ================== PROTECCIÓN DE PÁGINAS - CORREGIDO ==================
+// ================== PROTECCIÓN DE PÁGINAS - CORREGIDO (anti-bucle) ==================
 const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
 const paginasPublicas = ['login.html', 'registro.html'];
-// Solo verificar sesión si NO estamos en páginas públicas
+// Verificar si la página es pública
 const esPaginaPublica = paginasPublicas.some(pagina => paginaActual.includes(pagina));
-if (!esPaginaPublica) {
-    if (!hayUsuarioLogueado()) {
-        console.log('⚠️ No hay sesión activa, redirigiendo al login...');
-        window.location.replace('login.html');
-    }
-    else {
+const usuarioLogueado = hayUsuarioLogueado();
+if (usuarioLogueado && paginaActual === 'login.html') {
+    // 🔁 Si el usuario ya tiene sesión y abre el login → lo mandamos al home
+    console.log('➡️ Ya hay sesión activa. Redirigiendo al inicio...');
+    window.location.replace('index.html');
+}
+else if (!usuarioLogueado && !esPaginaPublica) {
+    // 🚫 Si no hay sesión y está intentando entrar a una página privada → login
+    console.log('⚠️ No hay sesión activa, redirigiendo al login...');
+    window.location.replace('login.html');
+}
+else {
+    // ✅ Caso normal: permitir acceso
+    if (usuarioLogueado) {
         const sesion = obtenerSesion();
         console.log('✅ Usuario logueado:', sesion?.nombre);
     }
-}
-else {
-    console.log('📄 Página pública detectada:', paginaActual);
+    else {
+        console.log('📄 Página pública detectada:', paginaActual);
+    }
 }
 // ================== FUNCIONES DE AUTENTICACIÓN ==================
 function iniciarSesion(event) {
@@ -47,15 +55,12 @@ function iniciarSesion(event) {
     const password = passwordInput.value;
     console.log('🔍 Intento de login:', email);
     console.log('📋 Usuarios disponibles:', listaUsuarios.length);
-    // Buscar usuario activo con ese correo
     const usuario = listaUsuarios.find(u => {
         const coincideCorreo = u.getCorreo() === email;
         const estaActivo = u.getActivo();
-        console.log(`  Verificando ${u.getCorreo()}:`, { coincideCorreo, estaActivo });
         return coincideCorreo && estaActivo;
     });
     if (!usuario) {
-        console.error('❌ Usuario no encontrado o inactivo');
         const errorDiv = document.getElementById('errorMessage');
         if (errorDiv) {
             errorDiv.textContent = 'Usuario no encontrado o cuenta inactiva';
@@ -64,18 +69,14 @@ function iniciarSesion(event) {
         }
         return false;
     }
-    // Verificar que el usuario tiene el método iniciarSesion
     if (typeof usuario.iniciarSesion !== 'function') {
-        console.error('❌ ERROR CRÍTICO: El usuario no tiene el método iniciarSesion');
-        console.log('Usuario defectuoso:', usuario);
-        alert('Error en la aplicación. Por favor, limpia el caché del navegador (Ctrl+Shift+Delete) y recarga.');
+        console.error('❌ ERROR: El usuario no tiene el método iniciarSesion');
+        alert('Error en la aplicación. Por favor, limpia la caché del navegador y recarga.');
         return false;
     }
-    // Intentar iniciar sesión
     const loginExitoso = usuario.iniciarSesion(email, password);
     if (loginExitoso) {
         console.log('✅ Login exitoso');
-        // Guardar sesión
         guardarSesion(usuario);
         const successDiv = document.getElementById('successMessage');
         if (successDiv) {
@@ -88,7 +89,6 @@ function iniciarSesion(event) {
         return false;
     }
     else {
-        console.error('❌ Contraseña incorrecta');
         const errorDiv = document.getElementById('errorMessage');
         if (errorDiv) {
             errorDiv.textContent = 'Contraseña incorrecta';
@@ -131,7 +131,6 @@ function registrarUsuario(event) {
         }
         return false;
     }
-    // Verificar si el ID o email ya existen
     if (listaUsuarios.some(u => u.getIdUsuario() === id)) {
         if (errorDiv) {
             errorDiv.textContent = 'El ID de usuario ya existe';
@@ -148,22 +147,18 @@ function registrarUsuario(event) {
         }
         return false;
     }
-    // Crear nuevo usuario
     const nuevoUsuario = new Usuario(id, nombre, email, password, true);
     listaUsuarios.push(nuevoUsuario);
-    // Guardar en LocalStorage
     guardarUsuarios(listaUsuarios);
     if (successDiv) {
         successDiv.textContent = '¡Usuario registrado exitosamente! Ya puedes iniciar sesión';
         successDiv.style.display = 'block';
         setTimeout(() => successDiv.style.display = 'none', 4000);
     }
-    // Limpiar formulario
     idInput.value = '';
     nombreInput.value = '';
     emailInput.value = '';
     passwordInput.value = '';
-    // Cerrar el formulario de registro
     const registerSection = document.getElementById('registerSection');
     const toggleBtn = document.getElementById('toggleBtn');
     if (registerSection)
@@ -172,11 +167,10 @@ function registrarUsuario(event) {
         toggleBtn.textContent = 'Crear Nueva Cuenta';
     return false;
 }
+// ================== CERRAR SESIÓN ==================
 function cerrarSesion() {
     console.log('🚪 Cerrando sesión...');
-    // Cerrar sesión
-    cerrarSesionGuard();
-    // Redirigir al login
+    cerrarSesionGuard(); // esta función debe venir de sessionGuard.ts
     window.location.replace('login.html');
 }
 // ================== INTERFAZ - VIDEOJUEGOS ==================
