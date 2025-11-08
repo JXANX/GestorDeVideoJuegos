@@ -11,13 +11,18 @@ import {
     guardarVideojuegos,
     guardarVideojuegosBeta,
     guardarReseñas,
-    guardarSesion,
-    obtenerSesion,
-    cerrarSesionStorage,
-    hayUsuarioLogueado,
     obtenerEstadisticas,
     debugearEstado
 } from "./localStorage.js";
+
+// ================== IMPORTAR SESSION GUARD ==================
+import {
+    guardarSesion,
+    obtenerSesion,
+    cerrarSesion as cerrarSesionGuard,
+    hayUsuarioLogueado,
+    inicializarGuardiaDeSesion
+} from "./sessionGuard.js";
 
 // ================== INICIALIZAR DATOS CON LOCALSTORAGE ==================
 console.log('🚀 Iniciando aplicación...');
@@ -31,17 +36,31 @@ let listaReseñas: Reseña[] = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
 
+// ================== INICIALIZAR GUARDIA DE SESIÓN ==================
+// El sessionGuard ya se inicializa automáticamente, pero podemos forzarlo si es necesario
+if (typeof inicializarGuardiaDeSesion === 'function') {
+    console.log('🔐 Sistema de protección de sesión activo');
+}
+
 // ================== PROTECCIÓN DE PÁGINAS ==================
-// Verificar si el usuario está logueado (excepto en login.html)
-if (window.location.pathname.includes('index.html') || 
-    window.location.pathname.includes('videojuegos.html') || 
-    window.location.pathname.includes('reseñas.html')) {
+// Verificar si el usuario está logueado (excepto en login.html y registro.html)
+const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
+const paginasPublicas = ['login.html', 'registro.html'];
+const requiereAuth = !paginasPublicas.some(p => paginaActual.includes(p));
+
+if (requiereAuth) {
     if (!hayUsuarioLogueado()) {
         console.log('⚠️ No hay sesión activa, redirigiendo al login...');
-        window.location.href = 'login.html';
+        window.location.replace('login.html');
     } else {
         const sesion = obtenerSesion();
         console.log('✅ Usuario logueado:', sesion?.nombre);
+        
+        // Mostrar nombre de usuario en la interfaz si existe el elemento
+        const userNameElement = document.getElementById('userName');
+        if (userNameElement && sesion) {
+            userNameElement.textContent = sesion.nombre;
+        }
     }
 }
 
@@ -52,7 +71,7 @@ function iniciarSesion(event: Event): boolean {
     const email = (document.getElementById('loginEmail') as HTMLInputElement).value;
     const password = (document.getElementById('loginPassword') as HTMLInputElement).value;
     
-    console.log('🔐 Intento de login:', email);
+    console.log('🔍 Intento de login:', email);
     console.log('📋 Usuarios disponibles:', listaUsuarios.length);
     
     // Buscar usuario activo con ese correo
@@ -87,6 +106,8 @@ function iniciarSesion(event: Event): boolean {
     
     if (loginExitoso) {
         console.log('✅ Login exitoso');
+        
+        // 🔥 GUARDAR SESIÓN CON SESSION GUARD
         guardarSesion(usuario);
         
         const successDiv = document.getElementById('successMessage');
@@ -96,7 +117,7 @@ function iniciarSesion(event: Event): boolean {
         }
         
         setTimeout(() => {
-            window.location.href = 'index.html';
+            window.location.replace('index.html'); // Usar replace para evitar volver atrás
         }, 1000);
         return false;
     } else {
@@ -170,9 +191,13 @@ function registrarUsuario(event: Event): boolean {
 }
 
 function cerrarSesion(): void {
-    // 🔥 CERRAR SESIÓN EN LOCALSTORAGE
-    cerrarSesionStorage();
-    window.location.href = 'login.html';
+    console.log('🚪 Cerrando sesión...');
+    
+    // 🔥 CERRAR SESIÓN CON SESSION GUARD
+    cerrarSesionGuard();
+    
+    // Redirigir al login usando replace para evitar volver atrás
+    window.location.replace('login.html');
 }
 
 // ================== INTERFAZ - VIDEOJUEGOS ==================
@@ -265,7 +290,6 @@ function mostrarReseñas(reseñas: Reseña[], contenedorId: string): void {
 // ================== CRUD VIDEOJUEGOS ==================
 function agregarVideojuego(nuevoJuego: Videojuego): void {
     listaVideojuegos.push(nuevoJuego);
-    // 🔥 GUARDAR EN LOCALSTORAGE
     guardarVideojuegos(listaVideojuegos);
 }
 
@@ -281,7 +305,6 @@ function eliminarVideojuego(id: number): void {
     const juego = listaVideojuegos.find(j => j.getId() === id && j.getActivo());
     if (juego) {
         juego.setActivo(false);
-        // 🔥 GUARDAR EN LOCALSTORAGE
         guardarVideojuegos(listaVideojuegos);
     }
 }
@@ -289,7 +312,6 @@ function eliminarVideojuego(id: number): void {
 // ================== CRUD VIDEOJUEGOS BETA ==================
 function agregarVideojuegoBeta(nuevoJuego: VideojuegoBeta): void {
     listaVideojuegosBeta.push(nuevoJuego);
-    // 🔥 GUARDAR EN LOCALSTORAGE
     guardarVideojuegosBeta(listaVideojuegosBeta);
 }
 
@@ -305,7 +327,6 @@ function eliminarVideojuegoBeta(id: number): void {
     const juego = listaVideojuegosBeta.find(j => j.getId() === id && j.getActivo());
     if (juego) {
         juego.setActivo(false);
-        // 🔥 GUARDAR EN LOCALSTORAGE
         guardarVideojuegosBeta(listaVideojuegosBeta);
     }
 }
@@ -313,7 +334,6 @@ function eliminarVideojuegoBeta(id: number): void {
 // ================== CRUD RESEÑAS ==================
 function agregarReseña(nuevaReseña: Reseña): void {
     listaReseñas.push(nuevaReseña);
-    // 🔥 GUARDAR EN LOCALSTORAGE
     guardarReseñas(listaReseñas);
 }
 
@@ -321,7 +341,6 @@ function actualizarReseña(id: number, datosActualizados: Partial<Reseña>): voi
     const r = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
     if (r) {
         Object.assign(r, datosActualizados);
-        // 🔥 GUARDAR EN LOCALSTORAGE
         guardarReseñas(listaReseñas);
     }
 }
@@ -330,7 +349,6 @@ function eliminarReseña(id: number): void {
     const r = listaReseñas.find(r => r.getIdReseña() === id && r.getActivo());
     if (r) {
         r.setActivo(false);
-        // 🔥 GUARDAR EN LOCALSTORAGE
         guardarReseñas(listaReseñas);
     }
 }
@@ -397,7 +415,6 @@ function actualizarJuego(): void {
         const rating = (document.getElementById('actualizarRating') as HTMLInputElement).value;
         if (rating) juego.setRating(parseFloat(rating));
 
-        // 🔥 GUARDAR EN LOCALSTORAGE
         guardarVideojuegos(listaVideojuegos);
 
         mostrarJuegos([juego], "resultadoActualizacion");
@@ -457,7 +474,6 @@ function agregarFeedbackBeta(): void {
     
     if (juego && feedback) {
         juego.agregarFeedback(feedback);
-        // 🔥 GUARDAR EN LOCALSTORAGE
         guardarVideojuegosBeta(listaVideojuegosBeta);
         
         alert("Feedback agregado y guardado exitosamente!");
@@ -482,7 +498,6 @@ function actualizarJuegoBeta(): void {
         const rating = (document.getElementById('actualizarBetaRating') as HTMLInputElement).value;
         if (rating) juego.setRating(parseFloat(rating));
 
-        // 🔥 GUARDAR EN LOCALSTORAGE
         guardarVideojuegosBeta(listaVideojuegosBeta);
 
         mostrarJuegosBeta([juego], "resultadoActualizacionBeta");
@@ -545,7 +560,6 @@ function actualizarReseñaCompleta(): void {
         const calificacion = (document.getElementById('actualizarCalificacion') as HTMLInputElement).value;
         if (calificacion) reseña.setCalificacion(parseFloat(calificacion));
 
-        // 🔥 GUARDAR EN LOCALSTORAGE
         guardarReseñas(listaReseñas);
 
         alert("Reseña actualizada y guardada!");
