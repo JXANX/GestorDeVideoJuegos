@@ -35,46 +35,49 @@ let listaReseñas: Reseña[] = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
 
-// ================== PROTECCIÓN DE PÁGINAS - DEFINITIVO ==================
-const rutaActual = window.location.pathname;
-const paginaActual = rutaActual.split('/').pop() || 'index.html';
+// ================== PROTECCIÓN DE PÁGINAS - SOLUCIÓN DEFINITIVA ANTI-BUCLE ==================
+const path = window.location.pathname;
+let paginaActual = path.split('/').pop()?.toLowerCase() || 'index.html';
 
-// Normalizamos los nombres de archivo
-const nombrePagina = paginaActual.toLowerCase();
+// Algunos servidores devuelven "/" sin nombre de archivo
+if (paginaActual === '' || paginaActual === '/') {
+    paginaActual = 'index.html';
+}
+
+// Definimos páginas públicas
 const paginasPublicas = ['login.html', 'registro.html'];
-
-// Detectar si la página actual es pública
-const esPaginaPublica = paginasPublicas.includes(nombrePagina);
-
-// Revisar sesión activa
+const esPaginaPublica = paginasPublicas.includes(paginaActual);
 const usuarioLogueado = hayUsuarioLogueado();
 
-// URL absolutas para redirigir (importante para evitar bucles relativos)
+// Rutas absolutas para evitar rutas relativas inconsistentes
 const urlLogin = `${window.location.origin}/login.html`;
 const urlHome = `${window.location.origin}/index.html`;
 
-// 🧠 Lógica principal sin bucles:
-if (usuarioLogueado && nombrePagina === 'login.html') {
-    console.log('➡️ Ya hay sesión activa. Redirigiendo al inicio...');
-    if (window.location.href !== urlHome) {
+// 🧠 Control de flujo sin posibilidad de bucles:
+if (usuarioLogueado && paginaActual === 'login.html') {
+    // Usuario con sesión intenta abrir login → mandarlo al home
+    if (!window.location.href.endsWith('/index.html') && window.location.pathname !== '/' ) {
+        console.log('➡️ Sesión activa detectada, redirigiendo al inicio...');
         window.location.replace(urlHome);
     }
 } 
 else if (!usuarioLogueado && !esPaginaPublica) {
-    console.log('⚠️ No hay sesión activa, redirigiendo al login...');
-    if (window.location.href !== urlLogin) {
+    // Usuario no logueado intenta abrir página privada → al login
+    if (!window.location.href.endsWith('/login.html')) {
+        console.log('⚠️ No hay sesión activa, redirigiendo al login...');
         window.location.replace(urlLogin);
     }
 } 
 else {
-    // ✅ Permitir acceso
+    // ✅ Permitir acceso normal
     if (usuarioLogueado) {
         const sesion = obtenerSesion();
         console.log('✅ Usuario logueado:', sesion?.nombre);
     } else {
-        console.log('📄 Página pública detectada:', nombrePagina);
+        console.log('📄 Página pública detectada:', paginaActual);
     }
 }
+
 
 
 // ================== FUNCIONES DE AUTENTICACIÓN ==================
