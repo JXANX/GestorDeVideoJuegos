@@ -5,16 +5,10 @@ import { VideojuegoBeta } from "./models/VideoJuegoBeta.js";
 import { obtenerJuegosPopulares } from "./rawgAPI.js";
 // ================== IMPORTAR LOCALSTORAGE ==================
 import { inicializarDatosDefault, guardarUsuarios, guardarVideojuegos, guardarVideojuegosBeta, guardarReseñas, debugearEstado } from "./localStorage.js";
-// ================== IMPORTAR SESSION GUARD ==================
-import { guardarSesion, obtenerSesion, cerrarSesion as cerrarSesionGuard, inicializarGuardiaDeSesion } from "./sessionGuard.js";
-// ================== DETECTAR PÁGINA ACTUAL ==================
-const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
-const paginasPublicas = ['login.html', 'registro.html'];
-const esPaginaPublica = paginasPublicas.some(p => paginaActual.includes(p));
-console.log('🚀 Iniciando aplicación...');
-console.log('📄 Página actual:', paginaActual);
-console.log('🔓 Es página pública:', esPaginaPublica);
+// ================== IMPORTAR SOLO LAS FUNCIONES BÁSICAS DE SESSION ==================
+import { guardarSesion, obtenerSesion, cerrarSesion as cerrarSesionGuard, hayUsuarioLogueado } from "./sessionGuard.js";
 // ================== INICIALIZAR DATOS CON LOCALSTORAGE ==================
+console.log('🚀 Iniciando aplicación...');
 const datosIniciales = inicializarDatosDefault();
 let listaUsuarios = datosIniciales.usuarios;
 let listaVideojuegos = datosIniciales.videojuegos;
@@ -22,24 +16,19 @@ let listaVideojuegosBeta = datosIniciales.videojuegosBeta;
 let listaReseñas = datosIniciales.reseñas;
 // Mostrar estado actual en consola
 debugearEstado();
-// ================== INICIALIZAR GUARDIA DE SESIÓN ==================
-// Solo inicializar el guardia en páginas que requieren autenticación
-if (!esPaginaPublica) {
-    console.log('🔐 Inicializando sistema de protección...');
-    inicializarGuardiaDeSesion();
-    // Verificar si hay sesión activa
-    const sesion = obtenerSesion();
-    if (sesion) {
-        console.log('✅ Usuario logueado:', sesion.nombre);
-        // Mostrar nombre de usuario en la interfaz si existe el elemento
-        const userNameElement = document.getElementById('userName');
-        if (userNameElement) {
-            userNameElement.textContent = sesion.nombre;
-        }
+// ================== PROTECCIÓN SIMPLE DE PÁGINAS ==================
+const paginaActual = window.location.pathname.split('/').pop() || 'index.html';
+const esPaginaLogin = paginaActual.includes('login.html') || paginaActual.includes('registro.html');
+// Solo verificar sesión si NO estamos en login/registro
+if (!esPaginaLogin) {
+    if (!hayUsuarioLogueado()) {
+        console.log('⚠️ No hay sesión activa, redirigiendo al login...');
+        window.location.href = 'login.html';
     }
-}
-else {
-    console.log('📄 Página pública detectada, sistema de protección desactivado');
+    else {
+        const sesion = obtenerSesion();
+        console.log('✅ Usuario logueado:', sesion?.nombre);
+    }
 }
 // ================== FUNCIONES DE AUTENTICACIÓN ==================
 function iniciarSesion(event) {
